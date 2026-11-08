@@ -117,9 +117,31 @@ async function adminRoutes(request, env, seg) {
   await requireAdmin(request, env);
   const m = request.method;
   if (seg[1] === "contracts" && seg.length === 2 && m === "GET") {
-    const { results: cs } = await env.DB.prepare("SELECT id, title, source, created_at, handoff FROM contracts ORDER BY created_at DESC").all();
+    const { results: cs } = await env.DB.prepare(
+      `SELECT c.id, c.title, c.source, c.created_at, c.handoff,
+        (SELECT COUNT(*) FROM clauses WHERE contract_id = c.id AND removed = 0) AS clause_count,
+        (SELECT COUNT(*) FROM revisions WHERE contract_id = c.id AND status = 'pending') AS pending_count,
+        (SELECT MAX(at) FROM revisions WHERE contract_id = c.id) AS last_rev,
+        (SELECT MAX(updated_at) FROM clauses WHERE contract_id = c.id) AS last_clause
+       FROM contracts c ORDER BY c.created_at DESC`).all();
     const { results: ps } = await env.DB.prepare("SELECT contract_id, role, label, name FROM participants").all();
-    return json({ contracts: cs.map((c) => ({ id: c.id, title: c.title, source: c.source, createdAt: c.created_at, handoff: JSON.parse(c.handoff), participants: ps.filter((p) => p.contract_id === c.id).map((p) => ({ role: p.role, label: p.label, name: p.name })) })) });
+    return json({ contracts: cs.map((c) => {
+      const handoff = JSON.parse(c.handoff);
+      return {
+        id: c.id, title: c.title, source: c.source, createdAt: c.created_at, handoff,
+        clauseCount: c.clause_count, pendingCount: c.pending_count,
+        updatedAt: Math.max(c.created_at, c.last_rev || 0, c.last_clause || 0, handoff.at || 0),
+        participants: ps.filter((p) => p.contract_id === c.id).map((p) => ({ role: p.role, label: p.label, name: p.name }))
+      };
+    }) });
+  }
+  if (seg[1] === "contracts" && seg.length === 4 && seg[3] === "rename" && m === "POST") {
+    const b = await body(request);
+    const title = str(b.title ?? "", MAX_TITLE, "合約名稱").trim();
+    if (!title) throw new HttpError(400, "bad_request", "請輸入合約名稱");
+    const r = await env.DB.prepare("UPDATE contracts SET title = ?, version = version + 1 WHERE id = ?").bind(title, seg[2]).run();
+    if (!r.meta.changes) throw new HttpError(404, "not_found", "找不到這份合約");
+    return json({ ok: true });
   }
   if (seg[1] === "contracts" && seg.length === 2 && m === "POST") {
     const b = await body(request);
@@ -188,6 +210,13 @@ async function contractRoutes(request, env, seg) {
   if (action === "me") {
     const name = str(b.name ?? "", 60, "名字").trim();
     await env.DB.batch([env.DB.prepare("UPDATE participants SET name = ? WHERE id = ?").bind(name, me.id), touch(env, { ...contract, handoff: { status: "x" } }, me)]);
+    return json({ ok: true });
+  }
+  if (action === "rename") {
+    needOwner();
+    const title = str(b.title ?? "", MAX_TITLE, "合約名稱").trim();
+    if (!title) throw new HttpError(400, "bad_request", "請輸入合約名稱");
+    await env.DB.prepare("UPDATE contracts SET title = ?, version = version + 1 WHERE id = ?").bind(title, cid).run();
     return json({ ok: true });
   }
   if (action === "seen") {

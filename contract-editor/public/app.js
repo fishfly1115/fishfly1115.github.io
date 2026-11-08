@@ -27,66 +27,112 @@ const route = location.pathname.match(/^\/c\/([0-9a-f-]{36})\/?$/i);
 if (route) contractApp(route[1]); else adminApp();
 
 /* =====================================================================
-   Admin page: list and create contracts
+   Home: my contracts (create, rename, delete, open)
    ===================================================================== */
 function adminApp() {
   let pw = store.get("ce:admin") || "";
-  let list = null, created = null, busy = false, confirmDel = null;
-  $("turn").innerHTML = `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">合約管理</div><div class="stage-sub">建立合約、取得雙方的專屬連結</div></div></div>`;
-  $("lede").textContent = "建立一份合約後，你會拿到自己的擁有者連結；在合約頁面裡可以匯入 Word 檔，並產生給對方的專屬連結。";
+  let list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "";
+  const STATUS = { editing: ["修改中", "plain"], review: ["批改中", "theirs"], reviewed: ["待檢視", "mine"], final: ["已定稿", "ok"] };
+  $("lede").textContent = "每份合約各自獨立：新增一份合約後點進去，就能匯入 Word、邀請對方、開始修改與批改。";
+  $("ctitle").textContent = "我的合約";
+  $("tabs").hidden = true;
+  $("csource").textContent = "合約共同編輯器";
   const adminApi = async (path, method = "GET", body) => {
     const res = await fetch("/api/admin/" + path, { method, headers: { "x-admin-password": pw, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw Object.assign(new Error(data.message || "錯誤"), { status: res.status, data });
+    if (!res.ok) throw Object.assign(new Error(data.message || "連線失敗"), { status: res.status, data });
     return data;
   };
   async function load() {
     try { list = (await adminApi("contracts")).contracts; store.set("ce:admin", pw); }
-    catch (e) { list = null; if (e.status === 401) { store.set("ce:admin", null); pw = ""; } toast(e.message); }
+    catch (e) { if (e.status === 401) { list = null; store.set("ce:admin", null); pw = ""; } toast(e.message); }
     draw();
   }
+  function drawTurn() {
+    $("turn").innerHTML = list
+      ? `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">我的合約 · 共 ${list.length} 份</div><div class="stage-sub">${list.filter((c) => c.pendingCount).length ? `${list.filter((c) => c.pendingCount).length} 份有待批改的修改` : "點一份合約進入編輯"}</div></div></div>
+         <div class="actions"><button class="btn primary" data-act="new">＋ 新增合約</button><button class="btn" data-act="logout">登出</button></div>`
+      : `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">合約共同編輯器</div><div class="stage-sub">請先登入</div></div></div>`;
+  }
+  function card(c) {
+    const [st, cls] = STATUS[c.handoff?.status] || STATUS.editing;
+    const others = c.participants.filter((p) => p.role !== "owner").map((p) => p.name || p.label);
+    if (renaming === c.id) return `<li><form class="row grow" data-form="rename" data-id="${c.id}" style="width:100%">
+        <div class="field grow"><label for="rn-${c.id}">合約名稱</label><input id="rn-${c.id}" maxlength="200" value="${esc(c.title)}" required></div>
+        <button class="btn primary" type="submit" ${busy ? "disabled" : ""}>儲存</button><button class="btn" type="button" data-act="rename-cancel">取消</button></form></li>`;
+    return `<li>
+      <div style="min-width:0;flex:1 1 280px">
+        <a class="t" href="/c/${c.id}" style="color:inherit;text-decoration:none">${esc(c.title)}</a>
+        <div class="row" style="margin-top:4px;gap:6px">
+          <span class="pill ${cls}">第 ${c.handoff?.round || 1} 輪 · ${st}</span>
+          ${c.pendingCount ? `<span class="pill theirs">${c.pendingCount} 處待批改</span>` : ""}
+          <span class="meta">${c.clauseCount ? `${c.clauseCount} 條` : "尚未匯入條文"} · ${others.length ? "對方：" + esc(others.join("、")) : "尚未邀請對方"} · 更新於 ${fmt(c.updatedAt)}</span>
+        </div>
+      </div>
+      <div class="row">${confirmDel === c.id
+        ? `<span class="meta">刪除後條文、紀錄與圖片都無法復原</span><button class="btn sm bad" data-act="del-do" data-id="${c.id}">確定刪除</button><button class="btn sm" data-act="del-cancel">取消</button>`
+        : `<a class="btn sm primary" href="/c/${c.id}">開啟</a><button class="btn sm" data-act="rename" data-id="${c.id}">改名</button><button class="btn sm" data-act="del" data-id="${c.id}">刪除</button>`}</div>
+    </li>`;
+  }
   function draw() {
+    drawTurn();
     const main = $("main");
     if (!list) {
-      main.innerHTML = `<form class="panel" id="login"><h2>輸入管理密碼</h2><p>這是你在 Cloudflare 設定的 ADMIN_PASSWORD，只有你需要它。</p>
+      main.innerHTML = `<form class="panel" data-form="login"><h2>輸入管理密碼</h2><p>這是你在 Cloudflare 設定的 ADMIN_PASSWORD。只有你需要它，對方用專屬連結進入合約，不需要密碼。</p>
         <div class="field"><label for="pw">管理密碼</label><input id="pw" type="password" autocomplete="current-password" required></div>
         <div class="row"><button class="btn primary" type="submit">登入</button></div></form>`;
-      $("login").addEventListener("submit", (e) => { e.preventDefault(); pw = $("pw").value; load(); });
+      $("pw").focus();
       return;
     }
-    const st = { editing: "修改中", review: "批改中", reviewed: "待檢視", final: "已定稿" };
+    const shown = list.filter((c) => !q || c.title.toLowerCase().includes(q.toLowerCase()) || c.participants.some((p) => (p.name || p.label || "").includes(q)));
     main.innerHTML = `
-      <form class="panel" id="create"><h2>建立新合約</h2>
-        <div class="row"><div class="field grow"><label for="ntitle">合約名稱（匯入 Word 時可再修改）</label><input id="ntitle" placeholder="例如：房屋租賃契約書" maxlength="200"></div>
-        <button class="btn primary" type="submit" ${busy ? "disabled" : ""}>建立</button></div>
-        ${created ? `<div class="warnline">已建立「${esc(created.title)}」。下面是你的擁有者連結，請收藏起來；忘記時用這個頁面的「開啟」也能進去。</div><div class="linkbox">${esc(created.link)}</div><div class="row"><button class="btn sm" type="button" data-act="copy-created">複製連結</button><a class="btn sm primary" href="${esc(created.link)}">開啟合約</a></div>` : ""}
-      </form>
-      <ul class="clist">${list.length ? list.map((c) => `<li><div><div class="t">${esc(c.title)}</div>
-        <div class="meta">${fmt(c.createdAt)} 建立 · 第 ${c.handoff?.round || 1} 輪 ${st[c.handoff?.status] || ""} · ${c.participants.filter((p) => p.role !== "owner").map((p) => esc(p.name || p.label)).join("、") || "尚未邀請對方"}</div></div>
-        <div class="row">${confirmDel === c.id ? `<span class="meta">確定刪除？條文、紀錄與圖片都會刪除</span><button class="btn sm bad" data-act="del-do" data-id="${c.id}">確定刪除</button><button class="btn sm" data-act="del-cancel">取消</button>`
-          : `<a class="btn sm primary" href="/c/${c.id}">開啟</a><button class="btn sm" data-act="del" data-id="${c.id}">刪除</button>`}</div></li>`).join("") : `<li><span class="meta">還沒有合約，從上方建立第一份。</span></li>`}</ul>
-      <div class="row" style="margin-bottom:40px"><button class="btn sm" data-act="logout">登出</button></div>`;
-    $("create").addEventListener("submit", async (e) => {
-      e.preventDefault(); if (busy) return; busy = true; draw();
+      ${creating ? `<form class="panel" data-form="create"><h2>新增合約</h2><p>先取個名字，建立後會直接進入這份合約，再匯入 Word 或逐條新增條款。</p>
+        <div class="row"><div class="field grow"><label for="ntitle">合約名稱</label><input id="ntitle" maxlength="200" placeholder="例如：房屋租賃契約書" required></div>
+        <button class="btn primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "建立中…" : "建立並進入"}</button><button class="btn" type="button" data-act="new-cancel">取消</button></div></form>` : ""}
+      ${list.length > 4 ? `<div class="field" style="margin-top:14px"><label for="q">搜尋合約名稱或對方名字</label><input id="q" value="${esc(q)}" placeholder="輸入關鍵字"></div>` : ""}
+      <ul class="clist">${list.length
+        ? (shown.length ? shown.map(card).join("") : `<li><span class="meta">找不到符合「${esc(q)}」的合約。</span></li>`)
+        : `<li style="display:grid;justify-items:center;gap:10px;padding:32px 16px"><span class="meta">還沒有合約。</span><button class="btn primary" data-act="new">＋ 新增第一份合約</button></li>`}</ul>`;
+    if (creating) $("ntitle").focus();
+    if (renaming) $("rn-" + renaming)?.focus();
+    $("q")?.addEventListener("input", (e) => { q = e.target.value; const pos = e.target.selectionStart; draw(); const el = $("q"); el.focus(); el.setSelectionRange(pos, pos); });
+  }
+  document.addEventListener("submit", async (e) => {
+    const f = e.target.closest("[data-form]"); if (!f) return;
+    e.preventDefault();
+    if (f.dataset.form === "login") { pw = $("pw").value; load(); return; }
+    if (busy) return;
+    if (f.dataset.form === "create") {
+      const title = $("ntitle").value.trim(); if (!title) return;
+      busy = true; draw();
       try {
-        const title = $("ntitle").value.trim() || "合作契約書";
         const r = await adminApi("contracts", "POST", { title });
         store.set("ce:key:" + r.id, r.key);
-        created = { title, link: `${location.origin}/c/${r.id}#k=${r.key}` };
-        list = (await adminApi("contracts")).contracts;
+        location.href = "/c/" + r.id;
+        return;
       } catch (err) { toast(err.message); }
       busy = false; draw();
-    });
-  }
+    }
+    if (f.dataset.form === "rename") {
+      const id = f.dataset.id, title = $("rn-" + id).value.trim(); if (!title) return;
+      busy = true; draw();
+      try { await adminApi(`contracts/${id}/rename`, "POST", { title }); renaming = null; toast("已改名"); await load(); } catch (err) { toast(err.message); }
+      busy = false; draw();
+    }
+  });
   document.addEventListener("click", async (ev) => {
     const b = ev.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act;
-    if (a === "copy-created") copy(created.link, "已複製擁有者連結");
-    if (a === "del") { confirmDel = b.dataset.id; draw(); }
+    if (a === "new") { creating = true; renaming = null; confirmDel = null; draw(); }
+    if (a === "new-cancel") { creating = false; draw(); }
+    if (a === "rename") { renaming = b.dataset.id; confirmDel = null; draw(); }
+    if (a === "rename-cancel") { renaming = null; draw(); }
+    if (a === "del") { confirmDel = b.dataset.id; renaming = null; draw(); }
     if (a === "del-cancel") { confirmDel = null; draw(); }
     if (a === "del-do") { try { await adminApi("contracts/" + b.dataset.id, "DELETE"); toast("已刪除"); } catch (e) { toast(e.message); } confirmDel = null; load(); }
-    if (a === "logout") { store.set("ce:admin", null); pw = ""; list = null; draw(); }
+    if (a === "logout") { store.set("ce:admin", null); pw = ""; list = null; creating = false; draw(); }
   });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && list) load(); });
   pw ? load() : draw();
 }
 
@@ -339,8 +385,19 @@ function renderTurn() {
 }
 
 function renderHeader() {
-  $("ctitle").textContent = S.loaded.c ? docTitle() : "合約共同編輯器";
-  $("csource").textContent = S.contract?.source ? `匯入自 ${S.contract.source} · 雙方共同編輯` : "雙方共同編輯";
+  const back = ADMIN ? `<a href="/" style="color:var(--accent)">← 所有合約</a> · ` : "";
+  $("csource").innerHTML = back + esc(S.contract?.source ? `匯入自 ${S.contract.source} · 雙方共同編輯` : "雙方共同編輯");
+  if (S.renaming && $("renameform")) { /* keep what the owner is typing across background refreshes */ }
+  else if (S.renaming) {
+    $("ctitle").innerHTML = `<form id="renameform" class="row"><input id="rtitle" maxlength="200" value="${esc(docTitle())}" aria-label="合約名稱" style="flex:1 1 240px;min-width:0;font:inherit;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--paper)"><button class="btn sm primary" type="submit">儲存</button><button class="btn sm" type="button" data-act="rename-cancel">取消</button></form>`;
+    $("renameform").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = $("rtitle").value.trim(); if (!title) return;
+      try { await act("rename", { title }, "已改名"); S.renaming = false; render(); } catch {}
+    });
+  } else {
+    $("ctitle").innerHTML = esc(S.loaded.c ? docTitle() : "合約共同編輯器") + (S.isAdmin && S.loaded.c ? ` <button class="btn sm" data-act="rename-open" style="vertical-align:middle">改名</button>` : "");
+  }
   const el = $("exportbar");
   if (!S.loaded.c || S.noAccess) { el.innerHTML = ""; return; }
   const imp = S.isAdmin && !S.importPreview ? `<button class="btn" data-act="import-pick" ${S.importing ? "disabled" : ""}>${S.importing ? "正在讀取 Word…" : "匯入 Word 合約"}</button>` : "";
@@ -884,6 +941,8 @@ document.addEventListener("click", (ev) => {
     case "revoke": simple(`participants/${id}/remove`, {}, "已停用這條連結"); break;
     case "name-edit": S.nameOpen = true; render(); break;
     case "name-cancel": S.nameOpen = false; render(); break;
+    case "rename-open": S.renaming = true; render(); $("rtitle")?.focus(); break;
+    case "rename-cancel": S.renaming = false; render(); break;
   }
 });
 try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch {}
