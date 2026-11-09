@@ -2,10 +2,22 @@
 
 供機關與廠商共同擬定採購契約：匯入契約草案（Word）後，雙方各以專屬連結直接修訂條文；每處修訂均自動記錄修訂人、時間與修訂前內容，由他方接受或退回。雙方確認定稿後，可匯出含案號、頁碼的 PDF 定稿本（文字可選取、可搜尋；未定稿版本附「草案」浮水印）。
 
-- 前端：`public/`（靜態檔，部署到 Cloudflare Pages）
-- 後端：`functions/`（Cloudflare Pages Functions）
+- 前端：`public/`（原生 ES modules，不需打包，部署到 Cloudflare Pages）
+- 後端：`server/`（由 `functions/` 進入，於 Cloudflare Pages Functions 執行）
 - 資料庫：Cloudflare D1（綁定名稱 `DB`，第一次使用時自動建立資料表）
 - 圖片：Cloudflare R2（綁定名稱 `IMAGES`）
+
+資料夾結構、分層、資料模型與 API 見 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+```
+public/js/
+  core/    基礎工具（DOM、格式、過濾、比對、函式庫載入）
+  lib/     契約領域邏輯（填寫欄位、條文切分、修訂版比對、範本）
+  word/    Word 匯入匯出      pdf/  PDF 匯出      api/  後端 API
+  pages/   home.js 首頁；contract/ 契約頁（views 畫面、actions 操作）
+server/    router → routes/（admin、contract、clauses、images）＋ db、auth、model
+test/      unit/ 單元測試、e2e/ 完整流程測試
+```
 
 ## 部署方式一（建議）：GitHub Actions 自動部署
 
@@ -50,17 +62,37 @@
 4. 雙方修訂、審閱；頁面頂端顯示目前應由何方處理，他方畫面每數秒自動更新。
 5. 雙方確認定稿後，按「匯出 PDF」取得定稿本。
 
+## 主要功能
+
+- **範本**：新增契約時可選空白契約、資助研究計畫契約（中央研究院）、勞務採購契約、財物採購契約；範本存放於 `public/data/templates.json`。
+- **直接填寫**：條文中的 □ 可直接點選勾選；「○年○月○日」可用日期選擇器填入（存為民國年）；底線空格、【　】與空白表格儲存格可直接填寫。連續填寫會合併為同一筆修訂。
+- **僅顯示已勾選**：切換後隱藏未勾選的選項（含其下所屬的段落與表格），匯出 PDF／Word 時也可套用。
+- **匯出**：PDF 定稿本（文字可搜尋）或 Word（.docx，標楷體，條文標題為「標題 2」樣式）。
+- **匯入修訂版 Word**：任一方可將匯出的 Word 整份修訂後匯回，系統逐條比對並列出修訂、新增、刪除，確認後成為待他方審閱的修訂。
+- **甲乙雙方與成員角色**：每位成員屬於甲方或乙方，自行填寫姓名與角色（承辦人、法務、主管等）；各方可自行新增本方成員，審閱以「方」為單位。
+- **Word 匯入**：保留 Word 自動編號（一、（一）、1. 等）與段落縮排；附件與簽署欄自動分段。
+
 ## 安全說明
 
 - 每條專屬連結就是一把鑰匙，拿到的人就能修改合約；資料庫只存鑰匙的雜湊值。外流時，擁有者可以在「成員與連結」停用該連結，再產生新的連結。
 - 只有知道 `ADMIN_PASSWORD` 的人能建立或刪除合約，也能以擁有者身分開啟任何合約。
 - 合約內容在顯示前都會過濾（DOMPurify），並以 Content-Security-Policy 禁止外來程式碼。
 
-## 本機測試
+## 本機開發與測試
 
 ```bash
 cd contract-editor
-npx wrangler pages dev public --d1 DB=local-db --r2 IMAGES=local-img --binding ADMIN_PASSWORD=test
+npm install
+npm run dev          # 本機伺服器 http://localhost:8788，管理密碼 dev-password
+npm run lint         # ESLint
+npm test             # 單元測試（欄位填寫、比對、條文切分、Word 匯出再匯入）
+npm run test:e2e     # 以瀏覽器走完整流程（需 Playwright 與 Chromium）
+```
+
+範本存放於 `public/data/templates.json`。要把一份 Word 契約做成範本：
+
+```bash
+npm run build:template -- 契約.docx --id my-contract --name "○○採購契約" --description "範本說明"
 ```
 
 PDF 內嵌字型為 Noto Sans TC（SIL Open Font License 1.1）。

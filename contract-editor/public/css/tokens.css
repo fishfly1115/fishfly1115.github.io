@@ -1,0 +1,35 @@
+/* 設計 tokens：色彩、字型、陰影。深色模式只改 tokens，元件一律引用 var(--…)。 */
+/* Layout: one sheet of contract paper under a sticky "whose turn" bar; clauses read like a printed 契約書, changes marked like a lawyer's redline. */
+:root {
+  --paper: #eef1f5;
+  --sheet: #ffffff;
+  --ink: #1a2230;
+  --muted: #5b6676;
+  --line: #d9dee6;
+  --accent: #1d4f8f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4ecf7;
+  --ins-bg: #ddf2e3;
+  --ins-fg: #11602c;
+  --del-bg: #fae3e0;
+  --del-fg: #9f2418;
+  --turn-bg: #fff2d6;
+  --turn-fg: #6d4a00;
+  --seal: #b3261e;
+  --shadow: 0 1px 2px rgba(20,30,50,.06), 0 8px 24px rgba(20,30,50,.06);
+  --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --f-clause: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0f131a; --sheet: #171c25; --ink: #e5e9ef; --muted: #9ba5b4; --line: #2a323e;
+  --accent: #8db3ea; --accent-ink: #0f1a2b; --accent-soft: #1c2a3e;
+  --ins-bg: #12341f; --ins-fg: #93dcaa; --del-bg: #3b1915; --del-fg: #f3a297;
+  --turn-bg: #3a2b0b; --turn-fg: #f2cd7c; --seal: #ef7a70;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #0f131a; --sheet: #171c25; --ink: #e5e9ef; --muted: #9ba5b4; --line: #2a323e;
+  --accent: #8db3ea; --accent-ink: #0f1a2b; --accent-soft: #1c2a3e;
+  --ins-bg: #12341f; --ins-fg: #93dcaa; --del-bg: #3b1915; --del-fg: #f3a297;
+  --turn-bg: #3a2b0b; --turn-fg: #f2cd7c; --seal: #ef7a70;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); color-scheme: dark }

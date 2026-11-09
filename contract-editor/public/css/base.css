@@ -1,0 +1,106 @@
+/* 基礎版面與共用元件：頁首、進度列、按鈕、輸入框、面板、選單、分頁、提示、載入骨架。 */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+body { margin: 0 }
+img { max-width: 100% }
+[hidden] { display: none !important }
+
+* { box-sizing: border-box }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.65 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--sheet) }
+button, input, textarea { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.wrap { max-width: 820px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+
+/* Turn bar */
+.turnbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--sheet); border-bottom: 1px solid var(--line) }
+.turnbar .wrap { padding-block: 12px; display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap }
+.stage { display: flex; gap: 10px; align-items: center; min-width: 0; flex: 1 1 320px }
+.stage-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--muted) }
+.stage[data-mine="1"] .stage-dot { background: var(--turn-fg); box-shadow: 0 0 0 4px var(--turn-bg) }
+.stage-text { min-width: 0 }
+.stage-title { font-weight: 700; font-size: 15px; text-wrap: balance }
+.stage-sub { color: var(--muted); font-size: 13px }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.btn { border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 7px 14px; font-size: 14px; font-weight: 500; white-space: nowrap }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.btn.good { background: var(--ins-fg); border-color: var(--ins-fg); color: var(--sheet) }
+.btn.bad { color: var(--del-fg); border-color: var(--del-fg); background: transparent }
+.btn[disabled] { opacity: .45; cursor: not-allowed }
+.btn.sm { padding: 4px 10px; font-size: 13px }
+.btn.icon { padding: 4px 8px; font-size: 13px; min-width: 30px }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; text-decoration: underline; text-underline-offset: 3px }
+
+/* Header */
+header.top { padding-block: 28px 8px; display: grid; gap: 6px }
+.eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--muted) }
+h1 { margin: 0; font-family: var(--f-clause); font-size: 28px; font-weight: 700; letter-spacing: .04em; text-wrap: balance }
+.lede { color: var(--muted); margin: 0; max-width: 62ch }
+.exportbar { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-top: 12px }
+.exportbar .hint { color: var(--muted); font-size: 13px; flex: 1 1 240px }
+.warnline { color: var(--turn-fg); background: var(--turn-bg); padding: 8px 12px; border-radius: 8px; font-size: 13px; flex: 1 1 100% }
+.dangerline { color: var(--del-fg); background: var(--del-bg); padding: 10px 12px; border-radius: 8px; font-size: 13px }
+.news { margin-top: 14px; background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px }
+.news h2 { margin: 0; font-size: 14px }
+.news ul { margin: 0; padding-left: 1.2em }
+.news .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 20px; overflow-x: auto }
+.tab { border: 0; background: none; padding: 10px 14px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent) }
+.count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 6px; border-radius: 10px; background: var(--turn-bg); color: var(--turn-fg); font-size: 12px; font-family: var(--f-data); text-align: center; line-height: 20px }
+
+/* Cloudflare edition: admin list, invite and name panels */
+.panel { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; margin-top: 14px }
+.panel h2 { margin: 0; font-size: 16px }
+.panel p { margin: 0; color: var(--muted); font-size: 14px }
+.field { display: grid; gap: 4px }
+.field label { font-size: 13px; color: var(--muted) }
+.field input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--paper) }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.row .grow { flex: 1 1 220px; min-width: 0 }
+.linkbox { font-family: var(--f-data); font-size: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; word-break: break-all; user-select: all }
+.plist2 { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.plist2 li { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 10px; background: var(--paper); border-radius: 6px }
+.clist { list-style: none; margin: 16px 0 48px; padding: 0; display: grid; gap: 10px }
+.clist li { background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; gap: 10px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap }
+a.btn { text-decoration: none; display: inline-block }
+.tplgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 4px }
+.tpl { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer; min-width: 0 }
+.tpl:has(input:checked) { border-color: var(--accent); background: var(--accent-soft) }
+.tpl input[type=radio] { margin: 4px 0 0; flex: none; width: auto; padding: 0; border: 0; background: none }
+.tpl > span { display: grid; gap: 2px; min-width: 0 }
+.tpl strong { font-size: 14px }
+.tpl .meta { font-family: var(--f-body); line-height: 1.5 }
+
+.fx-cell:hover { color: var(--accent) }
+.pop { position: absolute; z-index: 30; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 12px; display: grid; gap: 8px; width: min(320px, calc(100vw - 16px)) }
+.pop label { font-size: 13px; color: var(--muted) }
+.inp { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: var(--paper); font: inherit; color: inherit }
+.inp:focus { outline: 2px solid var(--accent); outline-offset: -1px }
+.grow { flex: 1 1 auto }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted) }
+.btn.ghost:hover { background: var(--paper); color: var(--ink) }
+.crumb { color: var(--accent); text-decoration: none }
+.crumb:hover { text-decoration: underline }
+/* 工具列：選項顯示切換＋匯入／匯出／成員 */
+.exportbar { gap: 8px; align-items: center }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sheet) }
+.seg button { border: 0; background: none; padding: 6px 12px; font-size: 13px; color: var(--muted) }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500 }
+.menu-wrap { position: relative }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); min-width: 260px; padding: 4px; display: grid }
+.menu button { border: 0; background: none; text-align: left; padding: 8px 10px; border-radius: 6px; display: grid; gap: 2px }
+.menu button:hover, .menu button:focus-visible { background: var(--paper) }
+.menu button strong { font-size: 14px; font-weight: 500 }
+.menu button span { font-size: 12px; color: var(--muted) }
+.panel.export { flex: 1 1 100% }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px }
+.count.plain { background: var(--paper); color: var(--muted) }
+/* 載入中 */
+.skel { display: block; height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--paper), var(--line), var(--paper)); background-size: 200% 100%; margin: 10px 0 }
+@media (prefers-reduced-motion: no-preference) { .skel { animation: shimmer 1.2s linear infinite } @keyframes shimmer { to { background-position: -200% 0 } } }
+.skel-block { padding: 24px 0 }
+.clist .t { font-family: var(--f-clause); font-weight: 700; font-size: 17px }

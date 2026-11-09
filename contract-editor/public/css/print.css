@@ -1,0 +1,14 @@
+/* PDF 匯出時在畫面外排版用的版面（#pdf-stage），固定白底黑字。 */
+/* Off-screen print layout for PDF */
+#pdf-stage { position: fixed; left: -12000px; top: 0; width: 794px; background: #fff; color: #111; font-family: var(--f-clause) }
+#pdf-stage .pb { padding: 0 2px 22px; background: #fff }
+#pdf-stage .ph { text-align: center; padding-bottom: 26px; position: relative }
+#pdf-stage .ph h2 { margin: 0; font-size: 30px; letter-spacing: .3em; text-indent: .3em; font-weight: 700 }
+#pdf-stage .ph p { margin: 8px 0 0; font-family: var(--f-body); font-size: 13px; color: #555 }
+#pdf-stage .ph .seal { position: absolute; right: 8px; top: -4px; border-color: #b3261e; color: #b3261e }
+#pdf-stage h3 { margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: .03em }
+#pdf-stage .rich { font-size: 16.5px; line-height: 2; overflow: visible }
+#pdf-stage .rich td, #pdf-stage .rich th { border-color: #999 }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--sheet); padding: 10px 16px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100vw - 32px); z-index: 20 }
+@media (prefers-reduced-motion: no-preference) { .toast { animation: rise .25s ease-out } @keyframes rise { from { transform: translate(-50%, 8px); opacity: .4 } } }

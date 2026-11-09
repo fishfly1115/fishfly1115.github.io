@@ -1,0 +1,99 @@
+/* 契約頁：條文紙張、修訂標示、可填寫欄位、編輯器、修訂紀錄、匯入比對、成員。 */
+/* Sheet & clauses */
+.sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); margin-block: 18px 48px; padding: 8px clamp(16px, 5vw, 48px) 28px }
+.clause { padding-block: 20px; border-bottom: 1px dashed var(--line); display: grid; gap: 8px; position: relative; min-width: 0 }
+.clause[data-state="theirs"] { box-shadow: inset 3px 0 0 var(--turn-fg); padding-left: 14px; margin-left: -14px }
+.clause[data-state="mine"] { box-shadow: inset 3px 0 0 var(--accent); padding-left: 14px; margin-left: -14px }
+.clause.added .rich { background: var(--ins-bg); color: var(--ins-fg); border-radius: 4px; padding: 2px 8px }
+.clause.added .editor .rich { background: var(--sheet); color: var(--ink) }
+.clause.deleted .rich, .clause.deleted h3 { text-decoration: line-through; color: var(--del-fg) }
+.clause.deleted .rich { background: var(--del-bg); border-radius: 4px; padding: 2px 8px }
+.clause-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.clause h3 { margin: 0; font-family: var(--f-clause); font-size: 18px; font-weight: 700; letter-spacing: .03em; min-width: 0 }
+.tools { display: flex; gap: 4px; flex-wrap: wrap }
+.meta { color: var(--muted); font-size: 12px; font-family: var(--f-data) }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap }
+.pill.theirs { background: var(--turn-bg); color: var(--turn-fg) }
+.pill.mine { background: var(--accent-soft); color: var(--accent) }
+.pill.ok { background: var(--ins-bg); color: var(--ins-fg) }
+.pill.no { background: var(--del-bg); color: var(--del-fg) }
+.pill.plain { background: var(--paper); color: var(--muted) }
+.newdot { width: 8px; height: 8px; border-radius: 50%; background: var(--seal); display: inline-block }
+.review { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; background: var(--paper); border-radius: 8px }
+.review .note { flex: 1 1 220px; color: var(--muted); font-size: 13px }
+.confirm { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--del-fg); border-radius: 8px }
+.confirm input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: var(--sheet) }
+.addrow { display: flex; justify-content: center; padding-top: 16px }
+ins.d { background: var(--ins-bg); color: var(--ins-fg); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px }
+del.d { background: var(--del-bg); color: var(--del-fg); text-decoration: line-through }
+del.d img { opacity: .5; outline: 2px solid var(--del-fg) }
+ins.d img { outline: 2px solid var(--ins-fg) }
+.legend { margin-top: 12px; display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
+
+/* Rich clause content (from Word or the editor) */
+.rich { font-family: var(--f-clause); font-size: 16px; line-height: 1.95; word-break: break-word; min-width: 0; overflow-x: auto }
+.rich > :first-child { margin-top: 0 } .rich > :last-child { margin-bottom: 0 }
+.rich p, .rich div { margin: 0 0 .5em }
+.rich ol, .rich ul { margin: 0 0 .5em; padding-left: 2em }
+.rich h1, .rich h2, .rich h3, .rich h4, .rich h5, .rich h6 { font-size: 1.05em; margin: .6em 0 .3em }
+.rich table { border-collapse: collapse; margin: .4em 0 .8em; font-size: .95em }
+.rich td, .rich th { border: 1px solid var(--line); padding: 4px 10px; vertical-align: top; min-width: 3em }
+.rich img { max-width: 100%; height: auto }
+.rich blockquote { margin: 0 0 .5em; padding-left: 1em; border-left: 3px solid var(--line) }
+
+/* Editor */
+.editor { display: grid; gap: 8px; min-width: 0 }
+.editor input { width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); padding: 8px 10px; font-family: var(--f-clause); font-weight: 700; font-size: 17px }
+.toolbar { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; background: var(--paper) }
+.toolbar button { border: 1px solid transparent; background: none; border-radius: 4px; padding: 2px 9px; font-size: 14px }
+.toolbar button:hover { border-color: var(--line); background: var(--sheet) }
+.editable { border: 1px solid var(--line); border-radius: 0 0 6px 6px; background: var(--sheet); padding: 10px 12px; min-height: 200px; outline: none }
+.editable:focus { border-color: var(--accent) }
+.editor .hint { font-size: 13px; color: var(--muted) }
+.editor .warn { font-size: 13px; color: var(--del-fg); background: var(--del-bg); padding: 8px 10px; border-radius: 6px }
+
+/* History */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px }
+.chip { border: 1px solid var(--line); background: var(--sheet); border-radius: 999px; padding: 3px 12px; font-size: 13px }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink) }
+.log { display: grid; gap: 12px; margin-block: 16px 48px }
+.entry { background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0 }
+.entry-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap }
+.entry .rich { font-size: 15px; line-height: 1.85 }
+.entry .rich.gone { text-decoration: line-through; color: var(--del-fg) }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.compare > div { min-width: 0; background: var(--paper); border-radius: 6px; padding: 10px 12px }
+.compare h4 { margin: 0 0 4px; font-size: 12px; color: var(--muted); letter-spacing: .08em; font-weight: 500 }
+@media (max-width: 640px) { .compare { grid-template-columns: 1fr } }
+.empty { text-align: center; color: var(--muted); padding: 40px 16px }
+.seal { display: inline-grid; place-items: center; width: 46px; height: 46px; border: 2px solid var(--seal); color: var(--seal); border-radius: 6px; font-family: var(--f-clause); font-weight: 700; font-size: 14px; line-height: 1.1; transform: rotate(-6deg); flex: none }
+
+/* Import preview */
+.import-panel { display: grid; gap: 14px; padding-top: 20px }
+.import-panel .lead { margin: 0; color: var(--muted) }
+.import-panel label { font-size: 13px; color: var(--muted) }
+.import-panel input[type=text] { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--paper); font-family: var(--f-clause); font-weight: 700; font-size: 18px }
+.plist { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; max-height: 420px; overflow-y: auto }
+.plist li { padding: 10px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 2px; min-width: 0 }
+.plist li:last-child { border-bottom: 0 }
+.plist .pt { font-family: var(--f-clause); font-weight: 700 }
+.plist .pp { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+
+/* 契約內容的版面忠實度：保留 Word 中以空白對齊的文字 */
+.rich p, .rich li, .rich td, .rich th { white-space: pre-wrap }
+/* 可直接填寫的欄位 */
+.fx { font: inherit; color: inherit; background: none; border: 0; padding: 0 1px; margin: 0; cursor: pointer; border-radius: 3px; white-space: pre-wrap; text-decoration: inherit }
+.fx:hover { background: var(--accent-soft) }
+.fx:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px }
+.fx-box { color: var(--accent); font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", var(--f-body); font-size: 1.05em; line-height: 1; padding: 0 2px }
+.fx-box[aria-checked="true"] { color: var(--ins-fg) }
+.fx-date, .fx-blank { box-shadow: inset 0 -1px 0 var(--accent); min-width: 2.5em; display: inline }
+.fx-cell { width: 100%; min-height: 1.6em; color: var(--muted); font-size: 13px; text-align: left; outline: 1px dashed var(--line); outline-offset: -2px }
+/* 成員 */
+.sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px }
+.side-col h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: .04em }
+.who { display: flex; gap: 6px 8px; align-items: baseline; flex-wrap: wrap; min-width: 0 }
+.chip-o { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; font-size: 12px; color: var(--muted) }
+/* 匯入比對 */
+.stats { gap: 6px }
+.cmp-same { padding-block: 10px; opacity: .7 }
