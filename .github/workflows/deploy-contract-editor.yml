@@ -57,6 +57,28 @@ jobs:
             exit 1
           fi
 
+      - name: Check Cloudflare token and account ID
+        run: |
+          set -euo pipefail
+          # Accept the ID even if it was pasted as a dashboard URL or with stray spaces.
+          account=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr 'A-F' 'a-f' | grep -oE '[0-9a-f]{32}' | head -n1 || true)
+          if [ -z "$account" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID 格式不對：應該是 32 個英數字（0-9、a-f），例如 Cloudflare 網址 dash.cloudflare.com/ 後面那一段。請到 GitHub 的 Settings → Secrets and variables → Actions 更新後重新執行。"
+            exit 1
+          fi
+          echo "::add-mask::$account"
+          echo "CLOUDFLARE_ACCOUNT_ID=$account" >> "$GITHUB_ENV"
+          token=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          echo "::add-mask::$token"
+          echo "CLOUDFLARE_API_TOKEN=$token" >> "$GITHUB_ENV"
+          verify=$(curl -sS -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4/user/tokens/verify")
+          if [ "$(echo "$verify" | jq -r '.success')" != "true" ] || [ "$(echo "$verify" | jq -r '.result.status')" != "active" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN 無效或已停用。請確認貼上的是 Cloudflare 建立 Token 後顯示的那一長串金鑰（不是 Token 名稱），必要時在 Cloudflare 對該 Token 按 Roll 重新產生。"
+            echo "$verify" | jq '.errors'
+            exit 1
+          fi
+          echo "Token is active."
+
       - name: Create Cloudflare resources if missing
         id: resources
         run: |
@@ -64,10 +86,11 @@ jobs:
           api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
           base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
 
-          # Token check gives a clear message instead of a confusing failure later.
-          if [ "$(api "$base/pages/projects?per_page=1" | jq -r '.success')" != "true" ]; then
-            echo "::error::Cloudflare API Token 或帳戶 ID 無效，或權限不足（需要 Cloudflare Pages Edit）。"
-            api "$base/pages/projects?per_page=1" | jq '.errors'
+          # Permission check gives a clear message instead of a confusing failure later.
+          check=$(api "$base/pages/projects?per_page=1")
+          if [ "$(echo "$check" | jq -r '.success')" != "true" ]; then
+            echo "::error::無法讀取這個帳戶的 Pages 專案：帳戶 ID 不屬於這把 Token 可用的帳戶，或 Token 缺少 Cloudflare Pages Edit 權限。"
+            echo "$check" | jq '.errors'
             exit 1
           fi
 
