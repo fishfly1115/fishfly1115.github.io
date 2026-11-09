@@ -1,9 +1,9 @@
 // 契約標題、選項顯示切換、匯入選單、匯出面板。
 import { $, esc } from "../../../core/dom.js";
 import { Fields } from "../../../lib/fields.js";
-import { S, ctx } from "../context.js";
+import { S } from "../context.js";
 import { render } from "../render.js";
-import { canEditDoc, caseNo, docTitle, status } from "../state.js";
+import { canEditDoc, caseNo, docTitle, visible } from "../state.js";
 import { act } from "../sync.js";
 
 export const menuBtn = (id, label, primary) => `<div class="menu-wrap"><button class="btn ${primary ? "primary" : ""}" data-act="menu" data-id="${id}" aria-haspopup="menu" aria-expanded="${S.menu === id}">${label} <span aria-hidden="true">▾</span></button>${S.menu === id ? menuHtml(id) : ""}</div>`;
@@ -16,8 +16,9 @@ export function menuHtml(id) {
   return `<div class="menu" role="menu">${items.filter(Boolean).map(([act, label, hint]) => `<button role="menuitem" data-act="${act}"><strong>${label}</strong><span>${hint}</span></button>`).join("")}</div>`;
 }
 export function renderHeader() {
-  const back = ctx.ADMIN ? `<a href="/" class="crumb">契約案件</a><span aria-hidden="true"> / </span>` : "";
-  $("csource").innerHTML = back + esc([caseNo() && `案號 ${caseNo()}`, S.contract?.source && (S.contract.source.startsWith("範本：") ? `採用${S.contract.source}` : `匯入自 ${S.contract.source}`)].filter(Boolean).join(" · "));
+  // 契約名稱與案號顯示在頂端列與紙張上；頁首只在編輯名稱時出現
+  $("csource").hidden = true;
+  $("ctitle").hidden = !S.renaming;
   $("lede").hidden = true;
   if (S.renaming && $("renameform")) { /* keep what the owner is typing across background refreshes */ }
   else if (S.renaming) {
@@ -34,10 +35,12 @@ export function renderHeader() {
   if (!S.loaded.c || S.noAccess || S.importPreview || S.reimport || S.tplPick) { el.innerHTML = ""; return; }
   const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
   const toggle = hasBoxes ? `<div class="seg" role="group" aria-label="選項顯示方式"><button data-act="only-checked" data-v="0" aria-pressed="${!S.onlyChecked}">全部選項</button><button data-act="only-checked" data-v="1" aria-pressed="${S.onlyChecked}">僅已勾選</button></div>` : "";
-  const fin = status() === "final";
   const imp = (S.isAdmin || (canEditDoc() && S.clauses.length)) ? menuBtn("import", "匯入") : "";
   const outlineBtn = S.view === "contract" && S.clauses.length > 1 ? `<button class="btn only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}">目錄</button>` : "";
-  el.innerHTML = `${outlineBtn}${toggle}<div class="grow"></div>${imp}${S.clauses.length ? `<button class="btn ${fin ? "" : ""}" data-act="export-open" ${S.exporting ? "disabled" : ""}>${S.exporting ? "匯出中…" : "匯出"}</button>` : ""}<button class="btn" data-act="people">成員${S.participants.filter((p) => !p.revoked).length ? `<span class="count plain">${S.participants.filter((p) => !p.revoked).length}</span>` : ""}</button>`;
+  const legend = S.view === "contract" && S.clauses.length ? `<span class="legend"><span><del class="d">刪除線</del> 刪除的原文</span><span><ins class="d">底線</ins> 新增的文字</span></span>` : "";
+  const vis = visible();
+  const addBtn = S.view === "contract" && canEditDoc() && vis.length && !S.adding ? `<button class="btn ghost" data-act="add" data-after="${vis[vis.length - 1].id}">＋ 新增條文</button>` : "";
+  el.innerHTML = `${outlineBtn}${toggle}${legend}<div class="grow"></div>${imp}${addBtn}`;
   if (S.exportOpen) el.insertAdjacentHTML("beforeend", exportPanelHtml());
 }
 export function exportPanelHtml() {

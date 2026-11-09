@@ -8,11 +8,15 @@ import { importHtml, reimportHtml, tplPickHtml } from "./views/importing.js";
 import { logHtml } from "./views/log.js";
 import { renderPeople } from "./views/members.js";
 import { renderNews } from "./views/news.js";
+import { renderMobileBar } from "./views/mobile-bar.js";
 import { renderOutline, watchOutline } from "./views/outline.js";
+import { renderPanel } from "./views/review-panel.js";
 import { renderHeader } from "./views/toolbar.js";
 import { renderTurn } from "./views/turnbar.js";
 
-export function render() { renderTurn(); renderHeader(); renderPeople(); renderNews(); renderTabs(); renderMain(); renderOutline(); watchOutline(); }
+export function render() { renderTurn(); renderHeader(); renderPeople(); renderNews(); renderTabs(); renderMain(); renderOutline(); renderPanel(); renderMobileBar(); watchOutline(); syncChrome(); }
+// 頂端列＋流程列的高度，供側欄固定位置與捲動定位使用
+function syncChrome() { const h = document.querySelector(".appbar")?.offsetHeight; if (h) document.documentElement.style.setProperty("--chrome", h + "px"); }
 export function renderTabs() {
   const hide = S.importPreview || S.reimport || S.tplPick || !S.loaded.c || S.noAccess;
   $("tabs").hidden = !!hide;

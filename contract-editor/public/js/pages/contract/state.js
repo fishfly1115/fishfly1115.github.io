@@ -39,3 +39,9 @@ export const revTitle = (r) => r.titleAfter || r.titleBefore || r.clauseTitle ||
 export const KIND = { edit: "修訂", add: "新增條文", delete: "刪除條文", move: "調整位置" };
 export const canEditDoc = () => S.canWrite && !!S.uid;
 export const FIELD_LABELS = { checked: "已勾選，點選取消", unchecked: "未勾選，點選勾選", date: "選擇日期", blank: "填寫內容", cell: "填寫" };
+export const otherSide = () => mySide() === "A" ? "B" : "A";
+// 寬螢幕（≥ 1280px）才顯示右側審閱面板；較窄時審閱按鈕回到條文內與底部審閱列
+export const isWide = () => window.matchMedia("(min-width: 1280px)").matches;
+export const isNarrow = () => window.matchMedia("(max-width: 960px)").matches;
+// 有他方待審閱修訂的條文（依條文順序）
+export const theirsClauses = () => visible().filter((c) => pendingOf(c.id).some((r) => !sameSide(r.by)));

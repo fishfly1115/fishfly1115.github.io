@@ -55,7 +55,7 @@ export function watchOutline() {
       if (cur) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current");
       if (cur) keepVisible(a);
     });
-  }, { rootMargin: "-90px 0px -65% 0px" });
+  }, { rootMargin: "-140px 0px -60% 0px" });
   document.querySelectorAll("section.clause[data-cid]").forEach((s) => spy.observe(s));
 }
 
@@ -64,14 +64,4 @@ function keepVisible(a) {
   const box = $("outline"), top = a.offsetTop, h = box.clientHeight;
   if (top < box.scrollTop + 60) box.scrollTop = Math.max(0, top - 60);
   else if (top > box.scrollTop + h - 60) box.scrollTop = top - h + 60;
-}
-
-// 依畫面位置跳到下一條待您審閱的條文（到底後回到第一條）
-export function gotoNextPending() {
-  const list = [...document.querySelectorAll("section.clause[data-state=theirs]")];
-  if (!list.length) return;
-  const next = list.find((s) => s.getBoundingClientRect().top > 100) || list[0];
-  next.scrollIntoView({ block: "start", behavior: "smooth" });
-  next.classList.add("flash");
-  setTimeout(() => next.classList.remove("flash"), 1200);
 }
