@@ -75,9 +75,8 @@ export function clauseHtml(c, idx, vis) {
       <button class="btn icon ghost" data-act="delete-open" data-id="${c.id}" title="提議刪除" aria-label="提議刪除">✕</button></div>` : "";
   const last = c.updatedAt ? `${whoFull(c.updatedBy)} · ${fmt(c.updatedAt)}` : "";
   return `<section class="clause ${isAdd ? "added" : ""} ${isDel ? "deleted" : ""}" data-state="${state}" id="c-${c.id}" data-cid="${c.id}">
-    <div class="clause-head"><h3>${fresh}${titleHtml}</h3><div class="actions">${pill}${tools}</div></div>
+    <div class="clause-head"><h3${last ? ` title="最後修訂：${esc(last)}"` : ""}>${fresh}${titleHtml}</h3><div class="actions">${pill}${tools}</div></div>
     ${review}
     <div class="rich">${bodyHtml || `<p style="color:var(--muted)">（無內文）</p>`}</div>
-    ${last ? `<div class="meta">最後修訂 ${esc(last)}</div>` : ""}
   </section>`;
 }

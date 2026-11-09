@@ -36,7 +36,8 @@ export function renderHeader() {
   const toggle = hasBoxes ? `<div class="seg" role="group" aria-label="選項顯示方式"><button data-act="only-checked" data-v="0" aria-pressed="${!S.onlyChecked}">全部選項</button><button data-act="only-checked" data-v="1" aria-pressed="${S.onlyChecked}">僅已勾選</button></div>` : "";
   const fin = status() === "final";
   const imp = (S.isAdmin || (canEditDoc() && S.clauses.length)) ? menuBtn("import", "匯入") : "";
-  el.innerHTML = `${toggle}<div class="grow"></div>${imp}${S.clauses.length ? `<button class="btn ${fin ? "" : ""}" data-act="export-open" ${S.exporting ? "disabled" : ""}>${S.exporting ? "匯出中…" : "匯出"}</button>` : ""}<button class="btn" data-act="people">成員${S.participants.filter((p) => !p.revoked).length ? `<span class="count plain">${S.participants.filter((p) => !p.revoked).length}</span>` : ""}</button>`;
+  const outlineBtn = S.view === "contract" && S.clauses.length > 1 ? `<button class="btn only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}">目錄</button>` : "";
+  el.innerHTML = `${outlineBtn}${toggle}<div class="grow"></div>${imp}${S.clauses.length ? `<button class="btn ${fin ? "" : ""}" data-act="export-open" ${S.exporting ? "disabled" : ""}>${S.exporting ? "匯出中…" : "匯出"}</button>` : ""}<button class="btn" data-act="people">成員${S.participants.filter((p) => !p.revoked).length ? `<span class="count plain">${S.participants.filter((p) => !p.revoked).length}</span>` : ""}</button>`;
   if (S.exportOpen) el.insertAdjacentHTML("beforeend", exportPanelHtml());
 }
 export function exportPanelHtml() {

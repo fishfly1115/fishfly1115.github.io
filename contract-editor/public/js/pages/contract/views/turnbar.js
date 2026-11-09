@@ -44,10 +44,11 @@ export function renderTurn() {
     title = "雙方已確認定稿"; sub = `第 ${n} 輪定稿 · ${fmt(S.handoff?.at)}`;
     acts = `<button class="btn primary" data-act="export-open">匯出定稿本</button><button class="btn" data-act="next-round">重新開啟修訂</button>`;
   }
+  const jump = todo && st !== "final" ? `<button class="btn" data-act="next-pending">下一處待審閱</button>` : "";
   el.innerHTML = `
     <div class="stage" data-mine="${mine ? 1 : 0}">
       ${st === "final" ? `<span class="seal" aria-hidden="true">定<br>稿</span>` : `<span class="stage-dot"></span>`}
       <div class="stage-text"><div class="stage-title">${esc(title)}</div><div class="stage-sub">${esc(sub)}</div></div>
     </div>
-    <div class="actions">${acts}</div>`;
+    <div class="actions">${jump}${acts}</div>`;
 }

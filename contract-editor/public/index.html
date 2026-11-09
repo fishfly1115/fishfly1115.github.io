@@ -13,18 +13,26 @@
 <link rel="stylesheet" href="/css/print.css">
 </head>
 <body>
-<div class="turnbar"><div class="wrap" id="turn"></div></div>
-<div class="wrap">
-  <header class="top">
-    <div class="eyebrow" id="csource">雙方共同編輯</div>
-    <h1 id="ctitle">合約共同編輯器</h1>
-    <p class="lede" id="lede">匯入契約草案（Word）後，雙方可直接修訂條文，並得新增、刪除或調整條文順序。每次儲存均自動記錄修訂人、時間與修訂前內容，原文以刪除線保留，由他方接受或退回；雙方確認定稿後，可匯出 PDF 定稿本。</p>
-    <div id="exportbar" class="exportbar"></div>
-    <div id="people"></div>
-    <div id="news"></div>
-  </header>
-  <nav class="tabs" role="tablist" id="tabs"></nav>
-  <main id="main"></main>
+<div class="appbar">
+  <div class="wrap wide appbar-in">
+    <a class="brand" id="brand" href="/"><span class="brand-mark" aria-hidden="true">約</span><span class="brand-name">合約共同編輯器</span></a>
+    <div class="turn" id="turn"></div>
+  </div>
+</div>
+<div class="wrap wide layout" id="layout">
+  <aside class="outline" id="outline" aria-label="條文目錄" hidden></aside>
+  <div class="content">
+    <header class="top">
+      <div class="eyebrow" id="csource"></div>
+      <h1 id="ctitle">合約共同編輯器</h1>
+      <p class="lede" id="lede" hidden></p>
+      <div id="exportbar" class="exportbar"></div>
+      <div id="people"></div>
+      <div id="news"></div>
+    </header>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+    <main id="main"></main>
+  </div>
 </div>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pdf-stage" aria-hidden="true"></div>
