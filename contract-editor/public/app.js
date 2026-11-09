@@ -23,6 +23,13 @@ function saveBlob(filename, blob) {
 }
 const loadScript = (src) => new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("load " + src)); document.head.appendChild(s); });
 
+let TEMPLATES = null;
+async function loadTemplates() {
+  if (!TEMPLATES) { const r = await fetch("/templates.json"); if (!r.ok) throw new Error("範本載入失敗"); TEMPLATES = await r.json(); }
+  return TEMPLATES;
+}
+const tplPicker = (data, chosen) => `<div class="tplgrid" role="radiogroup" aria-label="範本">${data.templates.map((t) => `<label class="tpl"><input type="radio" name="tpl" value="${esc(t.id)}" ${chosen === t.id ? "checked" : ""}><span><strong>${esc(t.name)}</strong><span class="meta">${esc(t.description)}${t.clauses.length ? `（${t.clauses.length} 段）` : ""}</span></span></label>`).join("")}</div>`;
+
 const route = location.pathname.match(/^\/c\/([0-9a-f-]{36})\/?$/i);
 if (route) contractApp(route[1]); else adminApp();
 
@@ -31,10 +38,10 @@ if (route) contractApp(route[1]); else adminApp();
    ===================================================================== */
 function adminApp() {
   let pw = store.get("ce:admin") || "";
-  let list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "";
-  const STATUS = { editing: ["修改中", "plain"], review: ["批改中", "theirs"], reviewed: ["待檢視", "mine"], final: ["已定稿", "ok"] };
-  $("lede").textContent = "每份合約各自獨立：新增一份合約後點進去，就能匯入 Word、邀請對方、開始修改與批改。";
-  $("ctitle").textContent = "我的合約";
+  let tpls = null, list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "";
+  const STATUS = { editing: ["修訂中", "plain"], review: ["審閱中", "theirs"], reviewed: ["待檢視", "mine"], final: ["已定稿", "ok"] };
+  $("lede").textContent = "各契約案分別管理：新增契約後進入該案，即可匯入契約草案（Word）、邀請他方，並進行條文修訂與審閱。";
+  $("ctitle").textContent = "契約案件";
   $("tabs").hidden = true;
   $("csource").textContent = "合約共同編輯器";
   const adminApi = async (path, method = "GET", body) => {
@@ -50,35 +57,36 @@ function adminApp() {
   }
   function drawTurn() {
     $("turn").innerHTML = list
-      ? `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">我的合約 · 共 ${list.length} 份</div><div class="stage-sub">${list.filter((c) => c.pendingCount).length ? `${list.filter((c) => c.pendingCount).length} 份有待批改的修改` : "點一份合約進入編輯"}</div></div></div>
-         <div class="actions"><button class="btn primary" data-act="new">＋ 新增合約</button><button class="btn" data-act="logout">登出</button></div>`
+      ? `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">契約案件 · 共 ${list.length} 件</div><div class="stage-sub">${list.filter((c) => c.pendingCount).length ? `${list.filter((c) => c.pendingCount).length} 件有待審閱的修訂` : "請選擇契約案件進入"}</div></div></div>
+         <div class="actions"><button class="btn primary" data-act="new">＋ 新增契約</button><button class="btn" data-act="logout">登出</button></div>`
       : `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">合約共同編輯器</div><div class="stage-sub">請先登入</div></div></div>`;
   }
   function card(c) {
     const [st, cls] = STATUS[c.handoff?.status] || STATUS.editing;
     const others = c.participants.filter((p) => p.role !== "owner").map((p) => p.name || p.label);
     if (renaming === c.id) return `<li><form class="row grow" data-form="rename" data-id="${c.id}" style="width:100%">
-        <div class="field grow"><label for="rn-${c.id}">合約名稱</label><input id="rn-${c.id}" maxlength="200" value="${esc(c.title)}" required></div>
+        <div class="field grow"><label for="rn-${c.id}">契約名稱</label><input id="rn-${c.id}" maxlength="200" value="${esc(c.title)}" required></div>
+        <div class="field" style="flex:0 1 200px"><label for="rc-${c.id}">案號</label><input id="rc-${c.id}" maxlength="100" value="${esc(c.caseNo || "")}"></div>
         <button class="btn primary" type="submit" ${busy ? "disabled" : ""}>儲存</button><button class="btn" type="button" data-act="rename-cancel">取消</button></form></li>`;
     return `<li>
       <div style="min-width:0;flex:1 1 280px">
-        <a class="t" href="/c/${c.id}" style="color:inherit;text-decoration:none">${esc(c.title)}</a>
+        <a class="t" href="/c/${c.id}" style="color:inherit;text-decoration:none">${esc(c.title)}</a>${c.caseNo ? `<div class="meta">案號：${esc(c.caseNo)}</div>` : ""}
         <div class="row" style="margin-top:4px;gap:6px">
           <span class="pill ${cls}">第 ${c.handoff?.round || 1} 輪 · ${st}</span>
-          ${c.pendingCount ? `<span class="pill theirs">${c.pendingCount} 處待批改</span>` : ""}
-          <span class="meta">${c.clauseCount ? `${c.clauseCount} 條` : "尚未匯入條文"} · ${others.length ? "對方：" + esc(others.join("、")) : "尚未邀請對方"} · 更新於 ${fmt(c.updatedAt)}</span>
+          ${c.pendingCount ? `<span class="pill theirs">${c.pendingCount} 處待審閱</span>` : ""}
+          <span class="meta">${c.clauseCount ? `${c.clauseCount} 條` : "尚未匯入條文"} · ${others.length ? "他方：" + esc(others.join("、")) : "尚未邀請他方"} · 更新於 ${fmt(c.updatedAt)}</span>
         </div>
       </div>
       <div class="row">${confirmDel === c.id
         ? `<span class="meta">刪除後條文、紀錄與圖片都無法復原</span><button class="btn sm bad" data-act="del-do" data-id="${c.id}">確定刪除</button><button class="btn sm" data-act="del-cancel">取消</button>`
-        : `<a class="btn sm primary" href="/c/${c.id}">開啟</a><button class="btn sm" data-act="rename" data-id="${c.id}">改名</button><button class="btn sm" data-act="del" data-id="${c.id}">刪除</button>`}</div>
+        : `<a class="btn sm primary" href="/c/${c.id}">開啟</a><button class="btn sm" data-act="rename" data-id="${c.id}">編輯名稱／案號</button><button class="btn sm" data-act="del" data-id="${c.id}">刪除</button>`}</div>
     </li>`;
   }
   function draw() {
     drawTurn();
     const main = $("main");
     if (!list) {
-      main.innerHTML = `<form class="panel" data-form="login"><h2>輸入管理密碼</h2><p>這是你在 Cloudflare 設定的 ADMIN_PASSWORD。只有你需要它，對方用專屬連結進入合約，不需要密碼。</p>
+      main.innerHTML = `<form class="panel" data-form="login"><h2>輸入管理密碼</h2><p>這是您在 Cloudflare 設定的 ADMIN_PASSWORD。只有您需要它，他方用專屬連結進入契約，不需要密碼。</p>
         <div class="field"><label for="pw">管理密碼</label><input id="pw" type="password" autocomplete="current-password" required></div>
         <div class="row"><button class="btn primary" type="submit">登入</button></div></form>`;
       $("pw").focus();
@@ -86,14 +94,25 @@ function adminApp() {
     }
     const shown = list.filter((c) => !q || c.title.toLowerCase().includes(q.toLowerCase()) || c.participants.some((p) => (p.name || p.label || "").includes(q)));
     main.innerHTML = `
-      ${creating ? `<form class="panel" data-form="create"><h2>新增合約</h2><p>先取個名字，建立後會直接進入這份合約，再匯入 Word 或逐條新增條款。</p>
-        <div class="row"><div class="field grow"><label for="ntitle">合約名稱</label><input id="ntitle" maxlength="200" placeholder="例如：房屋租賃契約書" required></div>
-        <button class="btn primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "建立中…" : "建立並進入"}</button><button class="btn" type="button" data-act="new-cancel">取消</button></div></form>` : ""}
-      ${list.length > 4 ? `<div class="field" style="margin-top:14px"><label for="q">搜尋合約名稱或對方名字</label><input id="q" value="${esc(q)}" placeholder="輸入關鍵字"></div>` : ""}
+      ${creating ? `<form class="panel" data-form="create"><h2>新增契約</h2><p>建立後將直接進入該契約，可匯入契約草案（Word）或逐條新增條文。</p>
+        <div class="field"><label>契約範本</label>${tpls ? tplPicker(tpls, "blank") : `<span class="meta">正在載入範本…</span>`}<p class="meta" id="tplnotice" hidden>${esc(tpls?.notice || "")}範本中【　】為待填欄位。</p></div>
+        <div class="field"><label for="ntitle">契約名稱（案名）</label><input id="ntitle" maxlength="200" placeholder="例如：○○年度○○系統建置維護採購案契約書" required></div>
+        <div class="row"><div class="field grow"><label for="ncase">案號（選填）</label><input id="ncase" maxlength="100" placeholder="例如：○○○-○○-○○○"></div>
+        <div class="field grow"><label for="nrole">本方身分</label><select id="nrole" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--paper);font:inherit;color:inherit"><option>機關（甲方）</option><option>廠商（乙方）</option></select></div></div>
+        <div class="row"><button class="btn primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "建立中…" : "建立並進入"}</button><button class="btn" type="button" data-act="new-cancel">取消</button></div></form>` : ""}
+      ${list.length > 4 ? `<div class="field" style="margin-top:14px"><label for="q">搜尋契約名稱或他方名字</label><input id="q" value="${esc(q)}" placeholder="輸入關鍵字"></div>` : ""}
       <ul class="clist">${list.length
-        ? (shown.length ? shown.map(card).join("") : `<li><span class="meta">找不到符合「${esc(q)}」的合約。</span></li>`)
-        : `<li style="display:grid;justify-items:center;gap:10px;padding:32px 16px"><span class="meta">還沒有合約。</span><button class="btn primary" data-act="new">＋ 新增第一份合約</button></li>`}</ul>`;
-    if (creating) $("ntitle").focus();
+        ? (shown.length ? shown.map(card).join("") : `<li><span class="meta">找不到符合「${esc(q)}」的契約。</span></li>`)
+        : `<li style="display:grid;justify-items:center;gap:10px;padding:32px 16px"><span class="meta">目前尚無契約案件。</span><button class="btn primary" data-act="new">＋ 新增第一件契約</button></li>`}</ul>`;
+    if (creating) {
+      $("ntitle").focus();
+      let lastAuto = "";
+      document.querySelectorAll("input[name=tpl]").forEach((r) => r.addEventListener("change", () => {
+        const t = tpls.templates.find((x) => x.id === r.value), el = $("ntitle");
+        if (!el.value.trim() || el.value === lastAuto) { el.value = t.title; lastAuto = t.title; }
+        $("tplnotice").hidden = !t.clauses.length;
+      }));
+    }
     if (renaming) $("rn-" + renaming)?.focus();
     $("q")?.addEventListener("input", (e) => { q = e.target.value; const pos = e.target.selectionStart; draw(); const el = $("q"); el.focus(); el.setSelectionRange(pos, pos); });
   }
@@ -103,26 +122,32 @@ function adminApp() {
     if (f.dataset.form === "login") { pw = $("pw").value; load(); return; }
     if (busy) return;
     if (f.dataset.form === "create") {
-      const title = $("ntitle").value.trim(); if (!title) return;
+      const title = $("ntitle").value.trim(), caseNo = $("ncase").value.trim(), ownerLabel = $("nrole").value; if (!title) return;
+      const tpl = tpls?.templates.find((t) => t.id === document.querySelector("input[name=tpl]:checked")?.value);
       busy = true; draw();
       try {
-        const r = await adminApi("contracts", "POST", { title });
+        const r = await adminApi("contracts", "POST", { title, caseNo, ownerLabel });
         store.set("ce:key:" + r.id, r.key);
+        if (tpl && tpl.clauses.length) {
+          const res = await fetch(`/api/c/${r.id}/import`, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + r.key }, body: JSON.stringify({ title, source: `範本：${tpl.name}`, clauses: tpl.clauses }) });
+          if (!res.ok) toast("契約已建立，但範本套用失敗，請進入契約後按「套用範本」重試");
+        }
         location.href = "/c/" + r.id;
         return;
       } catch (err) { toast(err.message); }
       busy = false; draw();
     }
     if (f.dataset.form === "rename") {
-      const id = f.dataset.id, title = $("rn-" + id).value.trim(); if (!title) return;
+      const id = f.dataset.id, title = $("rn-" + id).value.trim(), caseNo = $("rc-" + id).value.trim(); if (!title) return;
       busy = true; draw();
-      try { await adminApi(`contracts/${id}/rename`, "POST", { title }); renaming = null; toast("已改名"); await load(); } catch (err) { toast(err.message); }
+      try { await adminApi(`contracts/${id}/rename`, "POST", { title, caseNo }); renaming = null; toast("已更新"); await load(); } catch (err) { toast(err.message); }
       busy = false; draw();
     }
   });
   document.addEventListener("click", async (ev) => {
     const b = ev.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act;
+    if (a === "new" && !tpls) loadTemplates().then((d) => { tpls = d; if (creating) draw(); }).catch((e) => toast(e.message));
     if (a === "new") { creating = true; renaming = null; confirmDel = null; draw(); }
     if (a === "new-cancel") { creating = false; draw(); }
     if (a === "rename") { renaming = b.dataset.id; confirmDel = null; draw(); }
@@ -156,13 +181,15 @@ const S = {
 };
 const who = (id) => {
   if (!id) return "某人";
-  if (id === S.uid) return "你";
+  if (id === S.uid) return "您";
   const p = S.participants.find((x) => x.id === id);
-  return p ? (p.name || p.label || "對方") : "已停用的連結";
+  return p ? (p.name || p.label || "他方") : "已停用的連結";
 };
 const roundNo = () => S.handoff?.round || 1;
 const status = () => S.handoff?.status || "editing";
-const docTitle = () => S.contract?.title || "合作契約書";
+const docTitle = () => S.contract?.title || "採購契約書";
+const caseNo = () => S.contract?.caseNo || "";
+const otherLabel = () => /廠商|乙方/.test(S.me?.label || "") ? "機關（甲方）" : "廠商（乙方）";
 const myLink = () => KEY ? `${location.origin}/c/${CID}#k=${KEY}` : "";
 
 /* ---------- API ---------- */
@@ -203,13 +230,13 @@ function announce(st) {
     const o = old.get(r.id);
     if (!o && r.by !== S.uid) toast(`${who(r.by)} 剛${KIND[r.kind || "edit"]}〈${revTitle(r)}〉`);
     if (o && o.status !== r.status && r.by === S.uid && r.reviewedBy !== S.uid) {
-      if (r.status === "accepted") toast(`對方接受了你對〈${revTitle(r)}〉的${KIND[r.kind || "edit"]}`);
-      if (r.status === "reverted") toast(`對方退回了你對〈${revTitle(r)}〉的${KIND[r.kind || "edit"]}`);
+      if (r.status === "accepted") toast(`他方接受了您對〈${revTitle(r)}〉的${KIND[r.kind || "edit"]}`);
+      if (r.status === "reverted") toast(`他方退回了您對〈${revTitle(r)}〉的${KIND[r.kind || "edit"]}`);
     }
   }
   const h = st.contract.handoff;
   if (h && h.by && h.by !== S.uid && (!S.handoff || h.at !== S.handoff.at)) {
-    const m = h.note === "imported" ? "匯入了新的合約" : { review: "把合約交給你批改", reviewed: "批改完成，交回給你檢視", final: "同意定稿", editing: "開始了新一輪修改" }[h.status];
+    const m = h.note === "imported" ? "匯入了新的契約" : { review: "把契約交給您審閱", reviewed: "審閱完成，交回給您檢視", final: "同意定稿", editing: "開始了新一輪修訂" }[h.status];
     if (m) toast(`${who(h.by)} ${m}`);
   }
 }
@@ -334,8 +361,8 @@ const live = () => sorted().filter((c) => !c.removed);
 const pendingForMe = () => S.revs.filter((r) => r.status === "pending" && r.by !== S.uid);
 const isNew = (r) => S.lastSeen != null && r.by !== S.uid && r.at > S.lastSeen;
 const decidedNew = (r) => S.lastSeen != null && r.by === S.uid && r.reviewedAt && r.reviewedAt > S.lastSeen && r.reviewedBy !== S.uid;
-const revTitle = (r) => r.titleAfter || r.titleBefore || r.clauseTitle || "條款";
-const KIND = { edit: "修改", add: "新增條款", delete: "刪除條款", move: "調整位置" };
+const revTitle = (r) => r.titleAfter || r.titleBefore || r.clauseTitle || "條文";
+const KIND = { edit: "修訂", add: "新增條文", delete: "刪除條文", move: "調整位置" };
 const canEditDoc = () => S.canWrite && !!S.uid;
 
 /* ---------- render ---------- */
@@ -343,38 +370,38 @@ function render() { renderTurn(); renderHeader(); renderPeople(); renderNews(); 
 
 function renderTurn() {
   const el = $("turn");
-  if (S.noAccess) { el.innerHTML = `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">無法開啟這份合約</div><div class="stage-sub">${esc(S.noAccess)}</div></div></div>`; return; }
-  if (!S.loaded.c) { el.innerHTML = `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">${S.slow ? "暫時連不上伺服器" : "正在載入合約…"}</div><div class="stage-sub">${S.slow ? "請檢查網路連線，頁面會自動重試。" : "讀取條文、修改紀錄與目前進度。"}</div></div></div>`; return; }
+  if (S.noAccess) { el.innerHTML = `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">無法開啟這份契約</div><div class="stage-sub">${esc(S.noAccess)}</div></div></div>`; return; }
+  if (!S.loaded.c) { el.innerHTML = `<div class="stage"><span class="stage-dot"></span><div class="stage-text"><div class="stage-title">${S.slow ? "暫時連不上伺服器" : "正在載入契約…"}</div><div class="stage-sub">${S.slow ? "請檢查網路連線，頁面會自動重試。" : "讀取條文、修訂紀錄與目前進度。"}</div></div></div>`; return; }
   const st = status(), by = S.handoff?.by, n = roundNo();
   const todo = pendingForMe().length;
   const mineOpen = S.revs.filter((r) => r.status === "pending" && r.by === S.uid && (r.round || 1) === n).length;
   let title, sub, mine = false, acts = "";
   const copyBtn = `<button class="btn" data-act="copy">複製通知訊息</button>`;
   if (st === "editing") {
-    title = `第 ${n} 輪 · 修改中`;
-    sub = mineOpen ? `你這輪已改了 ${mineOpen} 處。改完後交給對方批改。` : "任何一方都可以直接修改條文。";
-    if (todo) { sub = `對方有 ${todo} 處修改等你批改。`; mine = true; }
-    acts = `<button class="btn primary" data-act="handoff-review">我改完了，交給對方批改</button>`;
+    title = `第 ${n} 輪 · 修訂中`;
+    sub = mineOpen ? `本輪您已修訂 ${mineOpen} 處。改完後交給他方審閱。` : "雙方均可直接修訂條文。";
+    if (todo) { sub = `他方有 ${todo} 處修訂等您審閱。`; mine = true; }
+    acts = `<button class="btn primary" data-act="handoff-review">本方修訂完成，送請他方審閱</button>`;
   } else if (st === "review") {
-    if (by === S.uid) { title = `第 ${n} 輪 · 已交給對方批改`; sub = "等待對方批改。每處修改的結果會出現在「修改紀錄」。"; acts = copyBtn; }
+    if (by === S.uid) { title = `第 ${n} 輪 · 已交給他方審閱`; sub = "等待他方審閱。每處修訂的結果會出現在「修訂紀錄」。"; acts = copyBtn; }
     else {
       mine = true;
-      title = `輪到你批改：${who(by)} 已完成第 ${n} 輪修改`;
-      sub = todo ? `還有 ${todo} 處待批改，逐條按「接受」或「退回」。` : "全部處理完了，可以交回對方檢視。";
-      acts = `<button class="btn primary" data-act="handoff-reviewed" ${todo ? "disabled" : ""}>批改完成，交回對方檢視</button>`;
+      title = `輪到您審閱：${who(by)} 已完成第 ${n} 輪修訂`;
+      sub = todo ? `還有 ${todo} 處待審閱，逐條按「接受」或「退回」。` : "全部處理完了，可以交回他方檢視。";
+      acts = `<button class="btn primary" data-act="handoff-reviewed" ${todo ? "disabled" : ""}>審閱完畢，送回他方確認</button>`;
     }
   } else if (st === "reviewed") {
     const rs = S.revs.filter((r) => (r.round || 1) === n && r.by !== by);
     const ok = rs.filter((r) => r.status === "accepted").length, no = rs.filter((r) => r.status === "reverted").length;
-    if (by === S.uid) { title = `第 ${n} 輪 · 已交回對方檢視`; sub = `你接受了 ${ok} 處、退回 ${no} 處。等待對方確認。`; acts = copyBtn; }
+    if (by === S.uid) { title = `第 ${n} 輪 · 已交回他方檢視`; sub = `您接受了 ${ok} 處、退回 ${no} 處。等待他方確認。`; acts = copyBtn; }
     else {
-      mine = true; title = `${who(by)} 已批改完成，請檢視結果`;
-      sub = `你的修改：接受 ${ok} 處、退回 ${no} 處。沒有異議就同意定稿，否則開始下一輪。`;
-      acts = `<button class="btn good" data-act="final">同意定稿</button><button class="btn" data-act="next-round">開始下一輪修改</button>`;
+      mine = true; title = `${who(by)} 已審閱完成，請檢視結果`;
+      sub = `您的修訂：接受 ${ok} 處、退回 ${no} 處。沒有異議就同意定稿，否則開始下一輪。`;
+      acts = `<button class="btn good" data-act="final">同意定稿</button><button class="btn" data-act="next-round">開始下一輪修訂</button>`;
     }
   } else {
     title = "雙方已確認定稿"; sub = `第 ${n} 輪定稿 · ${fmt(S.handoff?.at)} · 可以匯出 PDF`;
-    acts = `<button class="btn" data-act="next-round">重新開啟修改</button>`;
+    acts = `<button class="btn" data-act="next-round">重新開啟修訂</button>`;
   }
   el.innerHTML = `
     <div class="stage" data-mine="${mine ? 1 : 0}">
@@ -385,28 +412,29 @@ function renderTurn() {
 }
 
 function renderHeader() {
-  const back = ADMIN ? `<a href="/" style="color:var(--accent)">← 所有合約</a> · ` : "";
-  $("csource").innerHTML = back + esc(S.contract?.source ? `匯入自 ${S.contract.source} · 雙方共同編輯` : "雙方共同編輯");
+  const back = ADMIN ? `<a href="/" style="color:var(--accent)">← 所有契約</a> · ` : "";
+  $("csource").innerHTML = back + esc([caseNo() && `案號：${caseNo()}`, S.contract?.source && (S.contract.source.startsWith("範本：") ? `採用${S.contract.source}` : `匯入自 ${S.contract.source}`)].filter(Boolean).join(" · ") || "契約共同編輯");
   if (S.renaming && $("renameform")) { /* keep what the owner is typing across background refreshes */ }
   else if (S.renaming) {
-    $("ctitle").innerHTML = `<form id="renameform" class="row"><input id="rtitle" maxlength="200" value="${esc(docTitle())}" aria-label="合約名稱" style="flex:1 1 240px;min-width:0;font:inherit;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--paper)"><button class="btn sm primary" type="submit">儲存</button><button class="btn sm" type="button" data-act="rename-cancel">取消</button></form>`;
+    $("ctitle").innerHTML = `<form id="renameform" class="row"><input id="rtitle" maxlength="200" value="${esc(docTitle())}" aria-label="契約名稱" style="flex:1 1 240px;min-width:0;font:inherit;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--paper)"><input id="rcase" maxlength="100" value="${esc(caseNo())}" placeholder="案號" aria-label="案號" style="flex:0 1 180px;min-width:0;font-size:15px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--paper)"><button class="btn sm primary" type="submit">儲存</button><button class="btn sm" type="button" data-act="rename-cancel">取消</button></form>`;
     $("renameform").addEventListener("submit", async (e) => {
       e.preventDefault();
       const title = $("rtitle").value.trim(); if (!title) return;
-      try { await act("rename", { title }, "已改名"); S.renaming = false; render(); } catch {}
+      try { await act("rename", { title, caseNo: $("rcase").value.trim() }, "已更新"); S.renaming = false; render(); } catch {}
     });
   } else {
-    $("ctitle").innerHTML = esc(S.loaded.c ? docTitle() : "合約共同編輯器") + (S.isAdmin && S.loaded.c ? ` <button class="btn sm" data-act="rename-open" style="vertical-align:middle">改名</button>` : "");
+    $("ctitle").innerHTML = esc(S.loaded.c ? docTitle() : "合約共同編輯器") + (S.isAdmin && S.loaded.c ? ` <button class="btn sm" data-act="rename-open" style="vertical-align:middle">編輯名稱／案號</button>` : "");
   }
   const el = $("exportbar");
   if (!S.loaded.c || S.noAccess) { el.innerHTML = ""; return; }
-  const imp = S.isAdmin && !S.importPreview ? `<button class="btn" data-act="import-pick" ${S.importing ? "disabled" : ""}>${S.importing ? "正在讀取 Word…" : "匯入 Word 合約"}</button>` : "";
-  const people = !S.importPreview ? `<button class="btn" data-act="people">${S.isAdmin ? "邀請對方／成員" : "成員與我的連結"}</button>` : "";
+  const tplBtn = S.isAdmin && !S.importPreview ? `<button class="btn" data-act="tpl-open">套用範本</button>` : "";
+  const imp = S.isAdmin && !S.importPreview ? tplBtn + `<button class="btn" data-act="import-pick" ${S.importing ? "disabled" : ""}>${S.importing ? "正在讀取 Word…" : "匯入 Word 契約"}</button>` : "";
+  const people = !S.importPreview ? `<button class="btn" data-act="people">${S.isAdmin ? "邀請他方／成員" : "成員與我的連結"}</button>` : "";
   if (S.importPreview || !S.clauses.length) { el.innerHTML = imp + people; return; }
   const open = S.revs.filter((r) => r.status === "pending").length;
   const fin = status() === "final";
   if (S.exportAsk) {
-    el.innerHTML = `<div class="warnline">還有 ${open} 處修改尚未批改。PDF 會依目前畫面上的條文（含未批改的修改）輸出，不會顯示刪除線或標記。</div>
+    el.innerHTML = `<div class="warnline">還有 ${open} 處修訂尚未審閱。PDF 會依目前畫面上的條文（含未審閱的修訂）輸出，不會顯示刪除線或標記。</div>
       <div class="actions"><button class="btn primary" data-act="export-go">仍要匯出</button><button class="btn" data-act="export-cancel">取消</button></div>`;
     return;
   }
@@ -418,9 +446,9 @@ function renderPeople() {
   const el = $("people");
   if (!S.loaded.c || S.noAccess) { el.innerHTML = ""; return; }
   if (S.nameOpen) {
-    el.innerHTML = `<form class="panel" id="nameform"><h2>${S.me?.name ? "修改你的名字" : "歡迎！請先輸入你的名字"}</h2>
-      <p>對方會在修改紀錄中看到這個名字${S.me?.label ? `（你的身分：${esc(S.me.label)}）` : ""}。</p>
-      <div class="row"><div class="field grow"><label for="myname">你的名字或公司</label><input id="myname" maxlength="60" value="${esc(S.me?.name || "")}" required></div>
+    el.innerHTML = `<form class="panel" id="nameform"><h2>${S.me?.name ? "變更您的名字" : "歡迎！請先輸入您的名字"}</h2>
+      <p>他方會在修訂紀錄中看到這個名字${S.me?.label ? `（您的身分：${esc(S.me.label)}）` : ""}。</p>
+      <div class="row"><div class="field grow"><label for="myname">您的名字或公司</label><input id="myname" maxlength="60" value="${esc(S.me?.name || "")}" required></div>
       <button class="btn primary" type="submit">儲存</button>${S.me?.name ? `<button class="btn" type="button" data-act="name-cancel">取消</button>` : ""}</div></form>`;
     $("nameform").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -432,16 +460,16 @@ function renderPeople() {
   if (!S.peopleOpen) { el.innerHTML = ""; return; }
   const ps = S.participants;
   el.innerHTML = `<section class="panel"><h2>成員與連結</h2>
-    <ul class="plist2">${ps.map((p) => `<li><span><strong>${esc(p.name || "（尚未填名字）")}</strong> <span class="meta">${esc(p.label || "")}${p.id === S.uid ? " · 你" : ""}${p.lastSeen ? ` · 最後查看 ${fmt(p.lastSeen)}` : " · 尚未開啟"}</span></span>
+    <ul class="plist2">${ps.map((p) => `<li><span><strong>${esc(p.name || "（尚未填名字）")}</strong> <span class="meta">${esc(p.label || "")}${p.id === S.uid ? " · 您" : ""}${p.lastSeen ? ` · 最後查看 ${fmt(p.lastSeen)}` : " · 尚未開啟"}</span></span>
       ${S.isAdmin && p.role !== "owner" ? `<button class="btn sm bad" data-act="revoke" data-id="${p.id}">停用連結</button>` : ""}</li>`).join("")}</ul>
-    ${S.isAdmin ? `<form id="inviteform" class="row"><div class="field grow"><label for="ilabel">邀請誰？（例如：乙方 王小明）</label><input id="ilabel" maxlength="60" placeholder="乙方"></div><button class="btn primary" type="submit">產生專屬連結</button></form>
-      ${S.invited ? `<div class="warnline">這是給「${esc(S.invited.label)}」的專屬連結，只會顯示這一次。請用 LINE 或 Email 傳給對方；拿到連結的人就能修改合約。</div><div class="linkbox">${esc(S.invited.link)}</div><div class="row"><button class="btn sm" data-act="copy-invite">複製連結</button></div>` : ""}` : ""}
-    ${KEY ? `<div class="field"><label>你自己的專屬連結（換電腦或手機時用，請勿外流）</label><div class="linkbox">${esc(myLink())}</div></div>` : ""}
-    <div class="row">${KEY ? `<button class="btn sm" data-act="copy-mine">複製我的連結</button>` : ""}<button class="btn sm" data-act="name-edit">修改我的名字</button><button class="btn sm" data-act="people">關閉</button></div>
+    ${S.isAdmin ? `<form id="inviteform" class="row"><div class="field grow"><label for="ilabel">他方身分（例如：廠商（乙方）○○股份有限公司）</label><input id="ilabel" maxlength="60" list="labels" placeholder="${esc(otherLabel())}"><datalist id="labels"><option value="機關（甲方）"><option value="廠商（乙方）"><option value="監造單位"><option value="法務審閱"></datalist></div><button class="btn primary" type="submit">產生專屬連結</button></form>
+      ${S.invited ? `<div class="warnline">這是給「${esc(S.invited.label)}」的專屬連結，只會顯示這一次。請以電子郵件等方式送交他方；持有此連結者即可修訂本契約，請妥善保管。</div><div class="linkbox">${esc(S.invited.link)}</div><div class="row"><button class="btn sm" data-act="copy-invite">複製連結</button></div>` : ""}` : ""}
+    ${KEY ? `<div class="field"><label>您自己的專屬連結（換電腦或手機時用，請勿外流）</label><div class="linkbox">${esc(myLink())}</div></div>` : ""}
+    <div class="row">${KEY ? `<button class="btn sm" data-act="copy-mine">複製我的連結</button>` : ""}<button class="btn sm" data-act="name-edit">變更我的名字</button><button class="btn sm" data-act="people">關閉</button></div>
   </section>`;
   $("inviteform")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const label = $("ilabel").value.trim() || "對方";
+    const label = $("ilabel").value.trim() || otherLabel();
     try { const r = await act("invite", { label }); S.invited = { label, link: `${location.origin}/c/${CID}#k=${r.key}` }; render(); } catch {}
   });
 }
@@ -454,20 +482,20 @@ function renderNews() {
   if (!newRevs.length && !decided.length && !hand) { el.innerHTML = ""; return; }
   const items = [];
   if (hand) {
-    const m = S.handoff.note === "imported" ? `匯入了新的合約「${docTitle()}」` : { review: "把合約交給你批改", reviewed: "批改完成，交回給你檢視", final: "同意定稿", editing: "開始了新一輪修改" }[S.handoff.status] || "更新了進度";
+    const m = S.handoff.note === "imported" ? `匯入了新的契約「${docTitle()}」` : { review: "把契約交給您審閱", reviewed: "審閱完成，交回給您檢視", final: "同意定稿", editing: "開始了新一輪修訂" }[S.handoff.status] || "更新了進度";
     items.push(`${esc(who(S.handoff.by))} ${esc(m)}（${fmt(S.handoff.at)}）`);
   }
   if (newRevs.length) {
     const titles = [...new Set(newRevs.map(revTitle))];
-    items.push(`對方改動了 ${newRevs.length} 處：${esc(titles.slice(0, 4).join("、"))}${titles.length > 4 ? " 等" : ""}`);
+    items.push(`他方改動了 ${newRevs.length} 處：${esc(titles.slice(0, 4).join("、"))}${titles.length > 4 ? " 等" : ""}`);
   }
   if (decided.length) {
     const ok = decided.filter((r) => r.status === "accepted").length, no = decided.filter((r) => r.status === "reverted").length;
-    items.push(`你的修改有結果了：${ok ? `接受 ${ok} 處` : ""}${ok && no ? "、" : ""}${no ? `退回 ${no} 處` : ""}`);
+    items.push(`您的修訂有結果了：${ok ? `接受 ${ok} 處` : ""}${ok && no ? "、" : ""}${no ? `退回 ${no} 處` : ""}`);
   }
   el.innerHTML = `<section class="news" aria-label="自上次查看後的更新">
-    <div class="row"><h2>自你上次查看（${fmt(S.lastSeen) || "首次開啟"}）後</h2>
-    <div class="actions"><button class="btn sm" data-act="see-log">查看修改紀錄</button><button class="btn sm" data-act="mark-seen">標為已讀</button></div></div>
+    <div class="row"><h2>自您上次查看（${fmt(S.lastSeen) || "首次開啟"}）後</h2>
+    <div class="actions"><button class="btn sm" data-act="see-log">查看修訂紀錄</button><button class="btn sm" data-act="mark-seen">標為已讀</button></div></div>
     <ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul></section>`;
 }
 
@@ -475,16 +503,16 @@ function renderTabs() {
   if (S.importPreview || !S.loaded.c || S.noAccess) { $("tabs").innerHTML = ""; return; }
   const todo = pendingForMe().length;
   $("tabs").innerHTML = `
-    <button class="tab" role="tab" aria-selected="${S.view === "contract"}" data-view="contract">合約內容</button>
-    <button class="tab" role="tab" aria-selected="${S.view === "log"}" data-view="log">修改紀錄${todo ? `<span class="count" title="待你批改">${todo}</span>` : ""}</button>`;
+    <button class="tab" role="tab" aria-selected="${S.view === "contract"}" data-view="contract">契約內容</button>
+    <button class="tab" role="tab" aria-selected="${S.view === "log"}" data-view="log">修訂紀錄${todo ? `<span class="count" title="待您審閱">${todo}</span>` : ""}</button>`;
 }
 
 function renderMain() {
   const main = $("main");
   const key = S.editing || (S.adding ? "new" : null);
   const keep = key ? document.getElementById("editor-" + key) : null;
-  if (S.noAccess) { main.innerHTML = `<div class="sheet"><p class="empty">請向合約擁有者索取你的專屬連結。擁有者可以在合約頁面按「邀請對方／成員」產生。</p></div>`; return; }
-  main.innerHTML = S.importPreview ? importHtml() : S.view === "contract" ? contractHtml() : logHtml();
+  if (S.noAccess) { main.innerHTML = `<div class="sheet"><p class="empty">請向契約契約建立者索取您的專屬連結。契約建立者可以在契約頁面按「邀請他方／成員」產生。</p></div>`; return; }
+  main.innerHTML = S.tplPick ? tplPickHtml() : S.importPreview ? importHtml() : S.view === "contract" ? contractHtml() : logHtml();
   if (key) {
     const slot = document.getElementById("slot-" + key);
     if (slot) slot.replaceWith(keep || editorEl(key === "new" ? null : S.clauses.find((c) => c.id === key)));
@@ -494,12 +522,12 @@ function renderMain() {
 function contractHtml() {
   if (!S.loaded.c) return `<div class="sheet"><p class="empty">${S.slow ? "暫時讀不到條文，連線恢復後會自動顯示。" : "正在載入條文…"}</p></div>`;
   const vis = visible();
-  if (!vis.length && !S.adding) return `<div class="sheet"><p class="empty">還沒有合約條文。${S.isAdmin ? "按上方「匯入 Word 合約」選擇 .docx 檔開始，或" : "可以"}<button class="linkbtn" data-act="add" data-after="">直接新增第一條</button>。</p></div>`;
+  if (!vis.length && !S.adding) return `<div class="sheet"><p class="empty">還沒有契約條文。${S.isAdmin ? "可按上方「套用範本」、「匯入 Word 契約」開始，或" : "可以"}<button class="linkbtn" data-act="add" data-after="">直接新增第一條</button>。</p></div>`;
   const slotNew = `<section class="clause added" data-state="edit"><div id="slot-new"></div></section>`;
   let body = "";
   vis.forEach((c, i) => { body += clauseHtml(c, i, vis); if (S.adding?.afterId === c.id) body += slotNew; });
   if (S.adding && !vis.some((c) => c.id === S.adding.afterId)) body += slotNew;
-  const addEnd = canEditDoc() && !S.adding && vis.length ? `<div class="addrow"><button class="btn sm" data-act="add" data-after="${vis[vis.length - 1].id}">＋ 在最後新增條款</button></div>` : "";
+  const addEnd = canEditDoc() && !S.adding && vis.length ? `<div class="addrow"><button class="btn sm" data-act="add" data-after="${vis[vis.length - 1].id}">＋ 在最後新增條文</button></div>` : "";
   return `<div class="legend" style="margin-top:14px"><span><del class="d">刪除線</del> = 被刪掉的原文</span><span><ins class="d">底線</ins> = 新增的文字</span></div>
     <article class="sheet">${body}${addEnd}</article>`;
 }
@@ -520,41 +548,41 @@ function clauseHtml(c, idx, vis) {
   const authors = [...new Set(pend.map((r) => who(r.by)))].join("、");
   const what = [...kinds].map((k) => KIND[k]).join("、");
   let pill = "";
-  if (theirs.length) pill = `<span class="pill theirs">待你批改</span>`;
-  else if (mineP.length) pill = `<span class="pill mine">等待對方批改</span>`;
-  if (isAdd) pill += `<span class="pill ok">新增條款</span>`;
+  if (theirs.length) pill = `<span class="pill theirs">待您審閱</span>`;
+  else if (mineP.length) pill = `<span class="pill mine">等待他方審閱</span>`;
+  if (isAdd) pill += `<span class="pill ok">新增條文</span>`;
   if (isDel) pill += `<span class="pill no">提議刪除</span>`;
   if (kinds.has("move")) pill += `<span class="pill plain">已調整位置</span>`;
-  const fresh = pend.some(isNew) ? `<span class="newdot" title="新的修改"></span> ` : "";
+  const fresh = pend.some(isNew) ? `<span class="newdot" title="新的修訂"></span> ` : "";
   let review = "";
   if (S.confirm?.id === c.id) {
     const k = S.confirm.kind;
-    const msg = k === "delete" ? "提議刪除這一條？對方接受後才會真正刪除，在那之前條文會以刪除線顯示。"
-      : theirs.length ? "退回這條的改動：條文會恢復成改動前的樣子，紀錄會保留。" : "撤回你的改動：條文會恢復成改動前的樣子。";
+    const msg = k === "delete" ? "提議刪除這一條？他方接受後才會真正刪除，在那之前條文會以刪除線顯示。"
+      : theirs.length ? "退回這條的改動：條文會恢復成改動前的樣子，紀錄會保留。" : "撤回您的改動：條文會恢復成改動前的樣子。";
     const label = k === "delete" ? "刪除" : theirs.length ? "退回" : "撤回";
     review = `<div class="confirm"><label for="reason-${c.id}"><strong>${label}</strong>：${msg}</label>
-      ${k === "delete" ? "" : `<input id="reason-${c.id}" maxlength="500" placeholder="${theirs.length ? "退回理由（對方會看到，可留空）" : "撤回原因（可留空）"}">`}
+      ${k === "delete" ? "" : `<input id="reason-${c.id}" maxlength="500" placeholder="${theirs.length ? "退回理由（他方會看到，可留空）" : "撤回原因（可留空）"}">`}
       <div class="actions"><button class="btn bad" data-act="${k === "delete" ? "delete-do" : "revert-do"}" data-id="${c.id}">確認${label}</button><button class="btn" data-act="confirm-cancel">取消</button></div></div>`;
   } else if (pend.length) {
     review = `<div class="review">
-      <span class="note">${esc(authors)} 於 ${fmt(pend[pend.length - 1].at)} ${esc(what)}${pend.length > 1 ? `（共 ${pend.length} 次）` : ""}。${firstEdit && !isAdd && !isDel ? (plain ? "目前只顯示修改後的條文。" : "下方標出了與原文的差異。") : ""}</span>
-      ${firstEdit && !isAdd && !isDel ? `<button class="linkbtn" data-act="toggle-plain" data-id="${c.id}">${plain ? "顯示修改處" : "只看修改後"}</button>` : ""}
+      <span class="note">${esc(authors)} 於 ${fmt(pend[pend.length - 1].at)} ${esc(what)}${pend.length > 1 ? `（共 ${pend.length} 次）` : ""}。${firstEdit && !isAdd && !isDel ? (plain ? "目前只顯示修訂後的條文。" : "下方標出了與原文的差異。") : ""}</span>
+      ${firstEdit && !isAdd && !isDel ? `<button class="linkbtn" data-act="toggle-plain" data-id="${c.id}">${plain ? "顯示修訂處" : "只看修訂後"}</button>` : ""}
       ${theirs.length ? `<button class="btn sm good" data-act="accept" data-id="${c.id}">接受</button><button class="btn sm bad" data-act="revert-open" data-id="${c.id}">退回</button>` : ""}
       ${!theirs.length && mineP.length ? `<button class="btn sm" data-act="revert-open" data-id="${c.id}">撤回</button>` : ""}
     </div>`;
   }
   const tools = canEditDoc() && !isDel ? `<div class="tools">
-      <button class="btn sm" data-act="edit" data-id="${c.id}">修改</button>
+      <button class="btn sm" data-act="edit" data-id="${c.id}">修訂</button>
       <button class="btn icon" data-act="up" data-id="${c.id}" title="上移" aria-label="上移" ${idx === 0 ? "disabled" : ""}>↑</button>
       <button class="btn icon" data-act="down" data-id="${c.id}" title="下移" aria-label="下移" ${idx === vis.length - 1 ? "disabled" : ""}>↓</button>
-      <button class="btn icon" data-act="add" data-after="${c.id}" title="在下方新增條款" aria-label="在下方新增條款">＋</button>
-      <button class="btn icon" data-act="delete-open" data-id="${c.id}" title="刪除條款" aria-label="刪除條款">✕</button></div>` : "";
+      <button class="btn icon" data-act="add" data-after="${c.id}" title="在下方新增條文" aria-label="在下方新增條文">＋</button>
+      <button class="btn icon" data-act="delete-open" data-id="${c.id}" title="刪除條文" aria-label="刪除條文">✕</button></div>` : "";
   const last = c.updatedAt ? `${who(c.updatedBy)} · ${fmt(c.updatedAt)}` : "";
   return `<section class="clause ${isAdd ? "added" : ""} ${isDel ? "deleted" : ""}" data-state="${state}" id="c-${c.id}">
     <div class="clause-head"><h3>${fresh}${titleHtml}</h3><div class="actions">${pill}${tools}</div></div>
     ${review}
     <div class="rich">${bodyHtml || `<p style="color:var(--muted)">（尚無內文）</p>`}</div>
-    ${last ? `<div class="meta">最後修改：${esc(last)}</div>` : ""}
+    ${last ? `<div class="meta">最後修訂：${esc(last)}</div>` : ""}
   </section>`;
 }
 
@@ -567,7 +595,7 @@ function editorEl(c) {
   const box = document.createElement("div");
   box.className = "editor"; box.id = "editor-" + key;
   box.innerHTML = `
-    <label class="hint" for="et-${key}">${c ? "條款標題" : "新條款標題"}</label>
+    <label class="hint" for="et-${key}">${c ? "條文標題" : "新條文標題"}</label>
     <input id="et-${key}" maxlength="200" value="${esc(c ? c.title : "")}" placeholder="例如：第十條　其他約定">
     <div>
       <div class="toolbar" role="toolbar" aria-label="格式">
@@ -586,9 +614,9 @@ function editorEl(c) {
       <div class="editable rich" id="eb-${key}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="條文內容">${c ? clauseHtmlOf(c) : "<p><br></p>"}</div>
     </div>
     <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-    <div class="hint">可直接貼上 Word 內容，格式會保留。儲存後對方會看到你改了哪裡，原文也會保留。</div>
+    <div class="hint">可直接貼上 Word 內容，格式會保留。儲存後他方會看到您改了哪裡，原文也會保留。</div>
     <div class="warn" id="ew-${key}" hidden></div>
-    <div class="actions"><button class="btn primary" data-act="save" data-id="${key}">${c ? "儲存修改" : "新增條款"}</button><button class="btn" data-act="cancel">取消</button></div>`;
+    <div class="actions"><button class="btn primary" data-act="save" data-id="${key}">${c ? "儲存修訂" : "新增條文"}</button><button class="btn" data-act="cancel">取消</button></div>`;
   const ed = box.querySelector(".editable"), fileIn = box.querySelector("input[type=file]");
   let range = null;
   const keepRange = () => { const s = getSelection(); if (s.rangeCount && ed.contains(s.anchorNode)) range = s.getRangeAt(0).cloneRange(); };
@@ -623,13 +651,13 @@ function editorEl(c) {
 
 function logHtml() {
   const f = S.filter;
-  const filters = [["todo", "待你批改"], ["mine", "我的修改"], ["all", "全部"], ["accepted", "已接受"], ["reverted", "已退回／撤回"]];
+  const filters = [["todo", "待您審閱"], ["mine", "我的修訂"], ["all", "全部"], ["accepted", "已接受"], ["reverted", "已退回／撤回"]];
   let list = S.revs;
   if (f === "todo") list = list.filter((r) => r.status === "pending" && r.by !== S.uid);
   if (f === "mine") list = list.filter((r) => r.by === S.uid);
   if (f === "accepted") list = list.filter((r) => r.status === "accepted");
   if (f === "reverted") list = list.filter((r) => r.status === "reverted" || r.status === "withdrawn");
-  const empty = { todo: "沒有待你批改的修改。", mine: "你還沒有修改過條文。", all: "還沒有任何修改。到「合約內容」點「修改」開始。", accepted: "還沒有被接受的修改。", reverted: "沒有被退回或撤回的修改。" }[f];
+  const empty = { todo: "沒有待您審閱的修訂。", mine: "您還沒有修訂過條文。", all: "還沒有任何修訂。到「契約內容」點「修訂」開始。", accepted: "還沒有被接受的修訂。", reverted: "沒有被退回或撤回的修訂。" }[f];
   return `<div class="filters" role="group" aria-label="篩選">${filters.map(([k, l]) => `<button class="chip" aria-pressed="${f === k}" data-filter="${k}">${l}</button>`).join("")}</div>
     <div class="log">${list.length ? list.map(entryHtml).join("") : `<p class="empty">${empty}</p>`}</div>`;
 }
@@ -637,7 +665,7 @@ function logHtml() {
 function entryHtml(r) {
   const mine = r.by === S.uid, kind = r.kind || "edit";
   let pill;
-  if (r.status === "pending") pill = mine ? `<span class="pill mine">等待對方批改</span>` : `<span class="pill theirs">待你批改</span>`;
+  if (r.status === "pending") pill = mine ? `<span class="pill mine">等待他方審閱</span>` : `<span class="pill theirs">待您審閱</span>`;
   else if (r.status === "accepted") pill = `<span class="pill ok">${esc(who(r.reviewedBy))}已接受 · ${fmt(r.reviewedAt)}</span>`;
   else if (r.status === "reverted") pill = `<span class="pill no">${esc(who(r.reviewedBy))}已退回 · ${fmt(r.reviewedAt)}</span>`;
   else pill = `<span class="pill plain">已撤回 · ${fmt(r.reviewedAt)}</span>`;
@@ -646,8 +674,8 @@ function entryHtml(r) {
   if (kind === "edit") {
     title = r.titleBefore !== r.titleAfter ? diffText(r.titleBefore, r.titleAfter) : esc(revTitle(r));
     body = `<div class="rich">${diffHtml(revHtml(r, "before"), revHtml(r, "after"))}</div>`; canExpand = true;
-  } else if (kind === "add") { title = `新增條款：${esc(r.titleAfter)}`; body = `<div class="rich">${revHtml(r, "after")}</div>`; }
-  else if (kind === "delete") { title = `刪除條款：${esc(r.titleBefore)}`; body = `<div class="rich gone">${revHtml(r, "before")}</div>`; }
+  } else if (kind === "add") { title = `新增條文：${esc(r.titleAfter)}`; body = `<div class="rich">${revHtml(r, "after")}</div>`; }
+  else if (kind === "delete") { title = `刪除條文：${esc(r.titleBefore)}`; body = `<div class="rich gone">${revHtml(r, "before")}</div>`; }
   else { title = `調整位置：${esc(revTitle(r))}`; body = `<div class="meta">${r.orderAfter < r.orderBefore ? "往前移" : "往後移"}</div>`; }
   return `<article class="entry">
     <div class="entry-head">${isNew(r) || decidedNew(r) ? `<span class="newdot" title="新的"></span>` : ""}<strong>${title}</strong>${pill}</div>
@@ -655,10 +683,10 @@ function entryHtml(r) {
     ${r.note ? `<div class="review"><span class="note">${r.status === "withdrawn" ? "撤回原因" : "退回理由"}：${esc(r.note)}</span></div>` : ""}
     ${body}
     <div class="actions">
-      ${canExpand ? `<button class="linkbtn" data-act="expand" data-id="${r.id}">${open ? "收起全文對照" : "看修改前／修改後全文"}</button>` : ""}
-      ${r.status === "pending" && !mine ? `<button class="linkbtn" data-act="goto" data-id="${r.clauseId}">到條文批改</button>` : ""}
+      ${canExpand ? `<button class="linkbtn" data-act="expand" data-id="${r.id}">${open ? "收起全文對照" : "看修訂前／修訂後全文"}</button>` : ""}
+      ${r.status === "pending" && !mine ? `<button class="linkbtn" data-act="goto" data-id="${r.clauseId}">到條文審閱</button>` : ""}
     </div>
-    ${open && canExpand ? `<div class="compare"><div><h4>修改前</h4><div class="rich">${revHtml(r, "before")}</div></div><div><h4>修改後</h4><div class="rich">${revHtml(r, "after")}</div></div></div>` : ""}
+    ${open && canExpand ? `<div class="compare"><div><h4>修訂前</h4><div class="rich">${revHtml(r, "before")}</div></div><div><h4>修訂後</h4><div class="rich">${revHtml(r, "after")}</div></div></div>` : ""}
   </article>`;
 }
 
@@ -671,7 +699,7 @@ async function save(key) {
   if (key === "new") {
     if (!title && !textOf(html) && !/<img/i.test(html)) { S.adding = null; render(); return; }
     S.busy = true;
-    try { await act("clauses/add", { afterId: S.adding.afterId || null, title: title || "新條款", html }, "已新增條款，等待對方批改"); S.adding = null; } catch {}
+    try { await act("clauses/add", { afterId: S.adding.afterId || null, title: title || "新條文", html }, "已新增條文，等待他方審閱"); S.adding = null; } catch {}
     S.busy = false; render(); return;
   }
   const c = S.clauses.find((x) => x.id === key); if (!c) return;
@@ -680,11 +708,11 @@ async function save(key) {
   S.busy = true;
   try {
     await api(`clauses/${key}/edit`, { title: newTitle, html, baseRev: S.editBase.rev });
-    S.editing = null; toast("已儲存，對方會看到你改了哪裡"); await refresh();
+    S.editing = null; toast("已儲存，他方會看到您改了哪裡"); await refresh();
   } catch (e) {
     if (e.status === 409) {
       warn.hidden = false;
-      warn.textContent = `${who(e.data?.clause?.updatedBy)} 在你編輯時也改動了這一條。為了不蓋掉對方的內容，這次沒有儲存。請先複製你的草稿，按「取消」後重新點「修改」。`;
+      warn.textContent = `${who(e.data?.clause?.updatedBy)} 在您編輯時也改動了這一條。為了不蓋掉他方的內容，這次沒有儲存。請先複製您的草稿，按「取消」後重新點「修訂」。`;
     } else fail(e);
   }
   S.busy = false; render();
@@ -693,15 +721,17 @@ async function simple(path, body, msg) { if (S.busy) return; S.busy = true; try 
 
 async function copyMsg() {
   const st = status(), n = roundNo(), name = docTitle();
-  const msg = st === "review" ? `我已完成「${name}」第 ${n} 輪修改，請用你的專屬連結開啟合約批改，改過的地方都有標示。`
-    : st === "reviewed" ? `「${name}」第 ${n} 輪已批改完成，請用你的專屬連結開啟合約檢視結果。`
-    : `「${name}」有更新，請用你的專屬連結開啟合約查看。`;
-  copy(msg, "已複製，貼到 LINE 或 Email 傳給對方");
+  const ref = caseNo() ? `（案號：${caseNo()}）` : "";
+  const msg = st === "review" ? `「${name}」${ref}契約草案第 ${n} 輪修訂已完成，敬請以專屬連結登入審閱，修訂處均已標示。`
+    : st === "reviewed" ? `「${name}」${ref}契約草案第 ${n} 輪修訂已審閱完畢，敬請以專屬連結登入確認審閱結果。`
+    : st === "final" ? `「${name}」${ref}契約內容業經雙方確認定稿，敬請以專屬連結登入檢視並下載定稿版本。`
+    : `「${name}」${ref}契約草案已有更新，敬請以專屬連結登入檢視。`;
+  copy(msg, "已複製通知內容，請以電子郵件等方式送交他方");
 }
 
 /* ---------- Word import (keeps bold, italic, underline, lists, tables, images) ---------- */
 const CLAUSE_RE = /^[\s　]*第[\s　]*[一二三四五六七八九十百千零〇兩\d０-９]+[\s　]*條/;
-const TITLE_RE = /契約|合約|協議|同意書|備忘錄|承諾書|合作書/;
+const TITLE_RE = /契約|契約|協議|同意書|備忘錄|承諾書|採購|案$/;
 const squash = (s) => (s || "").replace(/[\s ]+/g, " ").trim();
 function stripLeading(el, n) {
   const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -725,7 +755,7 @@ function splitRich(html, fallbackTitle) {
     const body = cur.parts.join("");
     if (!cur.title && !textOf(body) && !/<img/i.test(body)) return;
     const txt = textOf(body);
-    clauses.push({ title: cur.title || (!clauses.length && /立契約書人|立合約書人|甲方|委任人|出租人/.test(txt) ? "立契約書人" : clauses.length ? "其他" : "前言"), html: body });
+    clauses.push({ title: cur.title || (clauses.length ? "其他約定" : /立契約書人|立合約書人/.test(txt) ? "立契約書人" : "前言"), html: body });
   };
   for (const el of els.slice(Math.max(i, 0))) {
     if (isStart(el)) {
@@ -774,15 +804,24 @@ async function pickDocx(file) {
   } catch (e) { console.error(e); toast("讀不到這個 Word 檔，請確認它是未加密的 .docx 檔。"); }
   S.importing = false; render(); window.scrollTo({ top: 0 });
 }
+function tplPickHtml() {
+  if (!S.tpls) return `<div class="sheet"><p class="empty">正在載入範本…</p></div>`;
+  return `<div class="sheet"><div class="import-panel">
+    <h2 style="margin:0;font-size:18px">套用範本</h2>
+    <p class="lead">選擇範本後會先顯示預覽，確認後才會寫入。${esc(S.tpls.notice)}</p>
+    ${tplPicker({ templates: S.tpls.templates.filter((t) => t.clauses.length) }, S.tpls.templates.find((t) => t.clauses.length)?.id)}
+    <div class="actions"><button class="btn primary" data-act="tpl-preview">預覽範本</button><button class="btn" data-act="tpl-cancel">取消</button></div>
+  </div></div>`;
+}
 function importHtml() {
   const p = S.importPreview;
-  const how = { clause: `依「第○條」切成 ${p.clauses.length} 個條款。`, heading: `依 Word 標題切成 ${p.clauses.length} 個段落。`, none: "沒有找到「第○條」或 Word 標題，整份會先成為一個條款；匯入後可以用「＋」新增條款，把內容分開。" }[p.split];
-  const replacing = S.clauses.length ? `<div class="dangerline">匯入後會取代目前的「${esc(docTitle())}」：現有條款和 ${S.revs.length} 筆修改紀錄會刪除，進度回到第 1 輪。需要的話請先匯出 PDF 保存。</div>` : "";
-  const imgNote = p.imgFail ? `<div class="warnline">有 ${p.imgFail} 張圖片格式或大小無法匯入（例如 Word 的 EMF 向量圖），請匯入後用「修改」→「圖片」重新加入。</div>` : "";
+  const how = { template: `套用「${esc((p.source || "").replace(/^範本：/, ""))}」範本，共 ${p.clauses.length} 段。範本中【　】為待填欄位，套用後請逐條填寫或修訂。`, clause: `依「第○條」切成 ${p.clauses.length} 個條文。`, heading: `依 Word 標題切成 ${p.clauses.length} 個段落。`, none: "沒有找到「第○條」或 Word 標題，整份會先成為一個條文；匯入後可以用「＋」新增條文，把內容分開。" }[p.split];
+  const replacing = S.clauses.length ? `<div class="dangerline">匯入後會取代目前的「${esc(docTitle())}」：現有條文和 ${S.revs.length} 筆修訂紀錄會刪除，進度回到第 1 輪。需要的話請先匯出 PDF 保存。</div>` : "";
+  const imgNote = p.imgFail ? `<div class="warnline">有 ${p.imgFail} 張圖片格式或大小無法匯入（例如 Word 的 EMF 向量圖），請匯入後用「修訂」→「圖片」重新加入。</div>` : "";
   return `<div class="sheet"><div class="import-panel">
-    <h2 style="margin:0;font-size:18px">確認匯入：${esc(p.source)}</h2>
-    <p class="lead">${how} 粗體、斜體、底線、清單、表格與圖片會保留。</p>
-    <div><label for="imp-title">合約名稱</label><input type="text" id="imp-title" maxlength="200" value="${esc(p.title)}"></div>
+    <h2 style="margin:0;font-size:18px">${p.split === "template" ? `確認套用範本：${esc(p.source.replace(/^範本：/, ""))}` : `確認匯入：${esc(p.source)}`}</h2>
+    <p class="lead">${how}${p.split === "template" ? "" : " 粗體、斜體、底線、清單、表格與圖片會保留。"}</p>
+    <div><label for="imp-title">契約名稱</label><input type="text" id="imp-title" maxlength="200" value="${esc(p.title)}"></div>
     <ol class="plist">${p.clauses.map((c) => `<li><span class="pt">${esc(c.title)}</span><span class="pp">${esc(textOf(c.html).slice(0, 80)) || "（無內文）"}</span></li>`).join("")}</ol>
     ${imgNote}${replacing}
     <div class="actions"><button class="btn primary" data-act="import-go" ${S.importing ? "disabled" : ""}>${S.importing ? "匯入中…" : "確認匯入"}</button><button class="btn" data-act="import-cancel">取消</button></div>
@@ -792,7 +831,7 @@ async function doImport() {
   const p = S.importPreview; if (!p || S.importing) return;
   const title = ($("imp-title")?.value || "").trim() || p.title;
   S.importing = true; render();
-  try { await act("import", { title, source: p.source, clauses: p.clauses }, `已匯入「${title}」，共 ${p.clauses.length} 個條款`); S.importPreview = null; } catch {}
+  try { await act("import", { title, source: p.source, clauses: p.clauses }, `已匯入「${title}」，共 ${p.clauses.length} 個條文`); S.importPreview = null; } catch {}
   S.importing = false; render();
 }
 
@@ -834,8 +873,8 @@ async function exportPdf() {
     if (!window.html2canvas) await loadScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
     if (!window.jspdf) await loadScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
     const fin = status() === "final";
-    const today = new Date().toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric" });
-    stage.innerHTML = `<div class="pb ph">${fin ? `<span class="seal">定<br>稿</span>` : ""}<h2>${esc(docTitle())}</h2><p>${fin ? `第 ${roundNo()} 輪定稿` : `第 ${roundNo()} 輪草稿`} · 匯出日期 ${esc(today)}</p></div>` +
+    const d0 = new Date(), today = `中華民國 ${d0.getFullYear() - 1911} 年 ${d0.getMonth() + 1} 月 ${d0.getDate()} 日`;
+    stage.innerHTML = `<div class="pb ph">${fin ? `<span class="seal">定<br>稿</span>` : ""}<h2>${esc(docTitle())}</h2>${caseNo() ? `<p>案號：${esc(caseNo())}</p>` : ""}<p>${fin ? `定稿本（第 ${roundNo()} 輪）` : `契約草案（第 ${roundNo()} 輪）`}　列印日期：${today}</p></div>` +
       live().map((c) => `<div class="pb"><h3>${esc(c.title)}</h3><div class="rich">${clauseHtmlOf(c)}</div></div>`).join("");
     await Promise.all([...stage.querySelectorAll("img")].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; })));
     try { await document.fonts.ready; } catch {}
@@ -885,11 +924,29 @@ async function exportPdf() {
       }
     }
     const n = pdf.getNumberOfPages();
-    pdf.setFont("helvetica");
-    for (let i = 1; i <= n; i++) { pdf.setPage(i); pdf.setFontSize(9); pdf.setTextColor(120); pdf.text(`${i} / ${n}`, 105, 297 - 10, { align: "center" }); }
-    pdf.setProperties({ title: docTitle(), subject: fin ? "定稿" : "草稿" });
+    for (let i = 1; i <= n; i++) {
+      pdf.setPage(i);
+      if (textLayer) {
+        pdf.setFont("tc");
+        if (!fin) {
+          // light "草案" watermark so a draft is never mistaken for the signed version
+          pdf.saveGraphicsState(); pdf.setGState(new pdf.GState({ opacity: 0.07 }));
+          pdf.setFontSize(110); pdf.setTextColor(0);
+          pdf.text("草案", 105, 160, { align: "center", angle: 30 });
+          pdf.restoreGraphicsState();
+        }
+        pdf.setFontSize(9); pdf.setTextColor(110);
+        pdf.text(`第 ${i} 頁，共 ${n} 頁`, 105, 297 - 10, { align: "center" });
+        const head = [docTitle(), caseNo() && `案號：${caseNo()}`].filter(Boolean).join("　");
+        if (i > 1) pdf.text(head.length > 46 ? head.slice(0, 45) + "…" : head, 105, 11, { align: "center" });
+      } else {
+        pdf.setFont("helvetica"); pdf.setFontSize(9); pdf.setTextColor(110);
+        pdf.text(`${i} / ${n}`, 105, 297 - 10, { align: "center" });
+      }
+    }
+    pdf.setProperties({ title: docTitle(), subject: [caseNo() && `案號 ${caseNo()}`, fin ? "定稿本" : "契約草案"].filter(Boolean).join("　") });
     const d = new Date(), stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-    saveBlob(`${docTitle().replace(/[\\/:*?"<>|]/g, "")}_${fin ? "定稿" : "草稿"}_${stamp}.pdf`, pdf.output("blob"));
+    saveBlob(`${docTitle().replace(/[\\/:*?"<>|]/g, "")}_${fin ? "定稿本" : `草案第${roundNo()}輪`}_${stamp}.pdf`, pdf.output("blob"));
     toast(textLayer ? "PDF 已下載" : "PDF 已下載（這次未能加入可搜尋的文字層）");
   } catch (e) { console.error(e); toast("PDF 產生失敗，請重新整理頁面後再試一次"); }
   stage.innerHTML = ""; S.exporting = false; render();
@@ -914,7 +971,7 @@ document.addEventListener("click", (ev) => {
     case "up": simple(`clauses/${id}/move`, { dir: -1 }); break;
     case "down": simple(`clauses/${id}/move`, { dir: 1 }); break;
     case "delete-open": S.confirm = { id, kind: "delete" }; render(); break;
-    case "delete-do": simple(`clauses/${id}/delete`, {}, "已提議刪除，對方接受後才會正式刪除"); break;
+    case "delete-do": simple(`clauses/${id}/delete`, {}, "已提議刪除，他方接受後才會正式刪除"); break;
     case "accept": simple(`clauses/${id}/accept`, {}, "已接受"); break;
     case "revert-open": S.confirm = { id, kind: "revert" }; render(); $("reason-" + id)?.focus(); break;
     case "confirm-cancel": S.confirm = null; render(); break;
@@ -925,19 +982,27 @@ document.addEventListener("click", (ev) => {
     case "see-log": S.view = "log"; S.filter = "all"; render(); break;
     case "mark-seen": S.lastSeen = Date.now(); render(); api("seen", {}).catch(() => {}); break;
     case "copy": copyMsg(); break;
-    case "handoff-review": simple("handoff", { status: "review", round: roundNo() }, "已交給對方批改。可用「複製通知訊息」告訴對方。"); break;
-    case "handoff-reviewed": simple("handoff", { status: "reviewed", round: roundNo() }, "已交回對方檢視。"); break;
+    case "handoff-review": simple("handoff", { status: "review", round: roundNo() }, "已交給他方審閱。可用「複製通知訊息」告訴他方。"); break;
+    case "handoff-reviewed": simple("handoff", { status: "reviewed", round: roundNo() }, "已交回他方檢視。"); break;
     case "final": simple("handoff", { status: "final", round: roundNo() }, "已同意定稿，可以匯出 PDF。"); break;
-    case "next-round": simple("handoff", { status: "editing", round: roundNo() + 1 }, "已開始新一輪修改。"); break;
+    case "next-round": simple("handoff", { status: "editing", round: roundNo() + 1 }, "已開始新一輪修訂。"); break;
     case "export": if (S.revs.some((r) => r.status === "pending")) { S.exportAsk = true; render(); } else exportPdf(); break;
     case "export-go": exportPdf(); break;
     case "export-cancel": S.exportAsk = false; render(); break;
+    case "tpl-open": S.tplPick = true; render(); loadTemplates().then((d) => { S.tpls = d; render(); }).catch((e) => { toast(e.message); S.tplPick = false; render(); }); break;
+    case "tpl-cancel": S.tplPick = false; render(); break;
+    case "tpl-preview": {
+      const t = S.tpls.templates.find((x) => x.id === document.querySelector("input[name=tpl]:checked")?.value); if (!t) break;
+      S.tplPick = false;
+      S.importPreview = { title: docTitle() === "採購契約書" ? t.title : docTitle(), clauses: t.clauses, source: `範本：${t.name}`, split: "template", imgFail: 0 };
+      render(); window.scrollTo({ top: 0 }); break;
+    }
     case "import-pick": $("docx-input").value = ""; $("docx-input").click(); break;
     case "import-go": doImport(); break;
     case "import-cancel": S.importPreview = null; render(); break;
     case "people": S.peopleOpen = !S.peopleOpen; S.invited = null; render(); break;
-    case "copy-invite": copy(S.invited.link, "已複製，請傳給對方"); break;
-    case "copy-mine": copy(myLink(), "已複製你的專屬連結"); break;
+    case "copy-invite": copy(S.invited.link, "已複製，請傳給他方"); break;
+    case "copy-mine": copy(myLink(), "已複製您的專屬連結"); break;
     case "revoke": simple(`participants/${id}/remove`, {}, "已停用這條連結"); break;
     case "name-edit": S.nameOpen = true; render(); break;
     case "name-cancel": S.nameOpen = false; render(); break;
@@ -948,7 +1013,7 @@ document.addEventListener("click", (ev) => {
 try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch {}
 
 render();
-if (!KEY && !ADMIN) { S.noAccess = "這個網址缺少專屬連結的金鑰。請用合約擁有者傳給你的完整連結開啟。"; render(); }
+if (!KEY && !ADMIN) { S.noAccess = "這個網址缺少專屬連結的金鑰。請用契約契約建立者傳給您的完整連結開啟。"; render(); }
 else refresh().then(() => { if (!S.noAccess) { startPolling(); api("seen", {}).catch(() => {}); } });
 }
 })();
