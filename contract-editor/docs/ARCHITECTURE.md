@@ -35,7 +35,11 @@ contract-editor/
 │       │   ├── docx-import.js   .docx → HTML（mammoth），圖片上傳
 │       │   └── docx-export.js   條文 → .docx（標楷體、標題 2、頁碼）
 │       ├── pdf/pdf-export.js    條文 → PDF（畫面截圖＋可搜尋文字層、浮水印、頁碼）
-│       ├── ui/template-picker.js 範本選擇元件
+│       ├── ui/
+│       │   ├── icons.js         介面圖示（一律使用 MUI Material Icons 的 SVG 路徑）
+│       │   ├── theme-toggle.js  右上角深色／淺色切換
+│       │   └── template-picker.js 範本選擇元件
+│       ├── theme-init.js        在畫面繪製前套用已選的主題（避免閃爍）
 │       └── pages/
 │           ├── home.js          首頁：登入、契約列表、新增／改名／刪除
 │           └── contract/        契約頁

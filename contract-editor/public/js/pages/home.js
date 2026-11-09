@@ -4,6 +4,7 @@ import { fmt } from "../core/format.js";
 import { store } from "../core/storage.js";
 import { loadTemplates } from "../lib/templates.js";
 import { tplPicker } from "../ui/template-picker.js";
+import { icon } from "../ui/icons.js";
 
 /**
  * 首頁「契約案件」
@@ -42,13 +43,13 @@ export function startHome() {
     const count = (k) => list.filter((c) => bucketOf(c) === k).length;
     const label = BUCKETS.find(([k]) => k === only)?.[1];
     $("exportbar").innerHTML = `
-      <div class="home-head"><h1>契約案件</h1><div class="grow"></div><button class="btn primary" data-act="new">＋ 新增契約</button></div>
+      <div class="home-head"><h1>契約案件</h1><div class="grow"></div><button class="btn primary" data-act="new">${icon("add", { size: 18 })}新增契約</button></div>
       <div class="stats-grid" role="group" aria-label="依處理狀態篩選">${BUCKETS.map(([k, name, sub]) => `
         <button class="stat" data-act="filter" data-v="${only === k ? "all" : k}" data-tone="${k}" aria-pressed="${only === k}">
           <span class="stat-label"><span class="dot"></span>${name}</span>
           <span class="stat-n">${count(k)}<small>件</small></span>
           <span class="stat-sub">${sub}</span></button>`).join("")}</div>
-      <div class="filterbar">${label ? `<span class="fchip">篩選：${label}<button data-act="clear-filter" aria-label="清除篩選">✕</button></span><button class="linkbtn" data-act="clear-filter">清除篩選</button>` : `<span class="meta-s">全部 ${list.length} 件</span>`}
+      <div class="filterbar">${label ? `<span class="fchip">篩選：${label}<button data-act="clear-filter" aria-label="清除篩選">${icon("close", { size: 14 })}</button></span><button class="linkbtn" data-act="clear-filter">清除篩選</button>` : `<span class="meta-s">全部 ${list.length} 件</span>`}
         <div class="grow"></div>
         ${list.length > 4 ? `<input id="q" class="inp search" type="search" value="${esc(q)}" placeholder="搜尋契約名稱、案號或他方" aria-label="搜尋契約">` : ""}</div>`;
   }
@@ -68,7 +69,7 @@ export function startHome() {
       <td data-label="輪到" class="c-turn">${turnHtml(c)}</td>
       <td data-label="他方" class="c-other">${others.length ? esc(others.join("、")) : `<span class="meta-s">尚未邀請</span>`}</td>
       <td data-label="更新時間" class="num"><span class="meta-s">${fmt(c.updatedAt)}</span></td>
-      <td class="c-act"><div class="menu-wrap"><button class="btn icon ghost" data-act="row-menu" data-id="${c.id}" aria-label="更多動作" aria-haspopup="menu" aria-expanded="${rowMenu === c.id}">⋯</button>
+      <td class="c-act"><div class="menu-wrap"><button class="btn icon ghost" data-act="row-menu" data-id="${c.id}" aria-label="更多動作" aria-haspopup="menu" aria-expanded="${rowMenu === c.id}">${icon("more")}</button>
         ${rowMenu === c.id ? `<div class="menu" role="menu"><button role="menuitem" data-act="rename" data-id="${c.id}"><strong>編輯名稱與案號</strong></button><button role="menuitem" class="danger" data-act="del" data-id="${c.id}"><strong>刪除契約</strong></button></div>` : ""}</div></td>
     </tr>`;
   }
@@ -107,7 +108,7 @@ export function startHome() {
       ? `<div class="empty"><p>尚無契約案件</p><button class="btn primary" data-act="new">新增契約</button></div>`
       : `<div class="empty"><p>沒有符合條件的契約</p><button class="btn" data-act="clear-filter">清除篩選</button></div>`;
     main.innerHTML = `
-      ${creating ? `<form class="panel" data-form="create"><div class="row"><h2>新增契約</h2><div class="grow"></div><button class="btn icon ghost" type="button" data-act="new-cancel" aria-label="關閉">✕</button></div>
+      ${creating ? `<form class="panel" data-form="create"><div class="row"><h2>新增契約</h2><div class="grow"></div><button class="btn icon ghost" type="button" data-act="new-cancel" aria-label="關閉">${icon("close")}</button></div>
         <div class="field"><label>契約範本</label>${tpls ? tplPicker(tpls, "blank") : `<span class="skel" style="height:64px"></span>`}<p class="meta-s" id="tplnotice" hidden>${esc(tpls?.notice || "")}範本中【　】為待填欄位。</p></div>
         <div class="field"><label for="ntitle">契約名稱（案名）</label><input id="ntitle" maxlength="200" placeholder="例如：115 年度資訊系統維護採購案" required></div>
         <div class="row"><div class="field grow"><label for="ncase">案號</label><input id="ncase" maxlength="100" placeholder="例如：115-A-001（選填）"></div>

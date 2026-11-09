@@ -11,6 +11,7 @@ import { fmt } from "../../../core/format.js";
 import { textOf } from "../../../core/sanitize.js";
 import { S } from "../context.js";
 import { KIND, SIDE, clauseHtmlOf, isWide, otherSide, pendingOf, revHtml, roundNo, sameSide, theirsClauses, visible, whoFull } from "../state.js";
+import { icon } from "../../../ui/icons.js";
 
 const showPanel = () => isWide() && S.loaded.c && !S.noAccess && !S.importPreview && !S.reimport && !S.tplPick;
 
@@ -34,7 +35,7 @@ export function summaryOf(c) {
 
 export function changesHtml(items, more) {
   if (!items.length) return `<p class="meta-s">格式或空白調整</p>`;
-  return `<ul class="chg">${items.map((x) => `<li>${x.ctx ? `<span class="chg-ctx">${esc(x.ctx)}</span>` : ""}${x.from ? `<del>${esc(x.from)}</del><span class="arrow" aria-label="改為">→</span>` : ""}<ins>${esc(x.to || "（刪除）")}</ins></li>`).join("")}${more ? `<li class="meta-s">另有 ${more} 處，見條文</li>` : ""}</ul>`;
+  return `<ul class="chg">${items.map((x) => `<li>${x.ctx ? `<span class="chg-ctx">${esc(x.ctx)}</span>` : ""}${x.from ? `<del>${esc(x.from)}</del><span class="arrow">${icon("arrowForward", { size: 14, label: "改為" })}</span>` : ""}<ins>${esc(x.to || "（刪除）")}</ins></li>`).join("")}${more ? `<li class="meta-s">另有 ${more} 處，見條文</li>` : ""}</ul>`;
 }
 
 function card(c) {

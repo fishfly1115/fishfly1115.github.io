@@ -38,10 +38,15 @@ button { cursor: pointer }
 .with-outline .content > *, .with-panel .content > * { max-width: 880px; margin-inline: auto }
 .content { min-width: 0 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
-.only-narrow { display: none }
+.only-narrow { display: none !important }
 
 .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-.btn { border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 7px 14px; font-size: 14px; font-weight: 500; white-space: nowrap }
+.btn { border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 7px 14px; font-size: 14px; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.5 }
+/* MUI Material Icons（ui/icons.js），顏色跟隨文字 */
+.ic { fill: currentColor; flex: none; display: inline-block; vertical-align: -0.2em }
+.btn .ic { margin-inline: -2px }
+.theme-btn { flex: none; color: var(--muted) }
+.theme-btn:hover { color: var(--ink) }
 .btn:hover { border-color: var(--muted) }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
 .btn.good { background: var(--ins-fg); border-color: var(--ins-fg); color: var(--sheet) }
@@ -50,8 +55,8 @@ button { cursor: pointer }
 .btn.block { width: 100%; padding-block: 10px }
 .btn[disabled] { opacity: .45; cursor: not-allowed }
 .btn.sm { padding: 4px 10px; font-size: 13px }
-.btn.icon { padding: 4px 8px; font-size: 13px; min-width: 32px; min-height: 32px }
-.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; text-decoration: underline; text-underline-offset: 3px }
+.btn.icon { padding: 4px; font-size: 13px; min-width: 32px; min-height: 32px }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; gap: 2px }
 
 /* Header */
 header.top { padding-block: 24px 4px; display: grid; gap: 4px }
@@ -86,7 +91,7 @@ h1 { margin: 0; font-family: var(--f-clause); font-size: 26px; font-weight: 700;
 .linkbox { font-family: var(--f-data); font-size: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; word-break: break-all; user-select: all }
 .plist2 { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
 .plist2 li { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 8px 10px; background: var(--paper); border-radius: 6px }
-a.btn { text-decoration: none; display: inline-block }
+a.btn { text-decoration: none }
 .tplgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 4px }
 .tpl { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer; min-width: 0 }
 .tpl:has(input:checked) { border-color: var(--accent); background: var(--accent-soft) }
@@ -172,7 +177,8 @@ select.inp { appearance: auto }
   .appbar-in { min-height: 52px; gap: 8px 10px; padding-inline: 12px }
   .brand-name, .avatars, .crumb-bar .crumb, .crumb-bar .sep, .crumb-case { display: none }
   .crumb-bar { padding-left: 10px; font-size: 14px }
-  .topact .btn { padding: 6px 10px; font-size: 13px }
+  .topact .btn { padding: 6px 8px; font-size: 13px }
+  .topact .btn-t { display: none }
   h1 { font-size: 21px }
   header.top { padding-top: 16px }
 }

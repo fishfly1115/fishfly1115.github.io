@@ -50,7 +50,7 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .editor { display: grid; gap: 8px; min-width: 0 }
 .editor input { width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); padding: 8px 10px; font-family: var(--f-clause); font-weight: 700; font-size: 17px }
 .toolbar { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; background: var(--paper) }
-.toolbar button { border: 1px solid transparent; background: none; border-radius: 4px; padding: 2px 9px; font-size: 14px }
+.toolbar button { border: 1px solid transparent; background: none; border-radius: 4px; padding: 3px 7px; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; min-height: 30px }
 .toolbar button:hover { border-color: var(--line); background: var(--sheet) }
 .editable { border: 1px solid var(--line); border-radius: 0 0 6px 6px; background: var(--sheet); padding: 10px 12px; min-height: 200px; outline: none }
 .editable:focus { border-color: var(--accent) }
@@ -121,7 +121,7 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .o-head .btn { margin-left: auto }
 .o-todo { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: var(--turn-bg); color: var(--turn-fg); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-weight: 500; margin-bottom: 10px; text-align: left }
 .o-todo:hover { filter: brightness(.97) }
-.o-go { margin-left: auto; font-size: 12px; font-weight: 400 }
+.o-go { margin-left: auto; font-size: 12px; font-weight: 400; display: inline-flex; align-items: center }
 .o-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px }
 .o-list > li { min-width: 0 }
 .o-list a { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 13px; line-height: 1.45 }
@@ -139,7 +139,7 @@ ins.d img { outline: 2px solid var(--ins-fg) }
   .layout.with-outline { display: block; padding-right: max(16px, env(safe-area-inset-right, 0px)) }
   .outline:not(.open) { display: none }
   .outline.open { position: fixed; inset: 0 auto 0 0; top: 0; width: min(320px, 86vw); max-height: none; z-index: 40; background: var(--paper); padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 0 0 100vmax rgba(10, 16, 26, .35) }
-  .only-narrow { display: inline-flex }
+  .only-narrow { display: inline-flex !important }
 }
 
 /* 待審閱的條文：淡黃底＋左側色條；定位中的條文加框 */
@@ -184,7 +184,7 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .chg-ctx { color: var(--muted); margin-right: 8px }
 .chg del { color: var(--del-fg); text-decoration: line-through }
 .chg ins { color: var(--ins-fg); text-decoration: none; font-weight: 500 }
-.chg .arrow { color: var(--muted); margin: 0 4px }
+.chg .arrow { color: var(--muted); margin: 0 4px; display: inline-flex; vertical-align: -0.15em }
 .rc-acts { display: flex; gap: 8px; align-items: center }
 .rp-empty { text-align: center; padding: 32px 12px; display: grid; gap: 4px; color: var(--muted); font-size: 13px }
 .rp-empty strong { color: var(--ink); font-size: 14px }
