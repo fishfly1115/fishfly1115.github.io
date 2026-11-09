@@ -7,7 +7,25 @@
 - 資料庫：Cloudflare D1（綁定名稱 `DB`，第一次使用時自動建立資料表）
 - 圖片：Cloudflare R2（綁定名稱 `IMAGES`）
 
-## 部署步驟（只需做一次）
+## 部署方式一（建議）：GitHub Actions 自動部署
+
+`.github/workflows/deploy-contract-editor.yml` 會在 `main` 分支的 `contract-editor/` 有變更時自動部署。第一次執行時，它會自動建立 Pages 專案、D1 資料庫和 R2 儲存桶，也會設定管理密碼。
+
+你只需要做一次：
+
+1. **建立 Cloudflare API Token**：Cloudflare 後台右上角頭像 → My Profile → API Tokens → Create Token → Create Custom Token，權限加入：
+   - Account → Cloudflare Pages → Edit
+   - Account → D1 → Edit
+   - Account → Workers R2 Storage → Edit
+2. **找到帳戶 ID（Account ID）**：在 Cloudflare 後台首頁或 Workers & Pages 頁面的右側欄。
+3. **（要用圖片時）啟用 R2**：後台 → R2 Object Storage，第一次使用要先啟用。沒啟用也能部署，只是不能上傳圖片。
+4. **在 GitHub 填入三個 secrets**：repo → Settings → Secrets and variables → Actions → New repository secret
+   - `CLOUDFLARE_API_TOKEN`：第 1 步的 Token
+   - `CLOUDFLARE_ACCOUNT_ID`：第 2 步的帳戶 ID
+   - `CONTRACT_ADMIN_PASSWORD`：你自訂的管理密碼（首頁登入用）
+5. **合併 PR 到 `main`**，部署就會自動開始。到 repo 的 Actions 頁面可以看進度，完成後摘要會列出網址（通常是 `https://contract-editor.pages.dev`）。之後也可以在 Actions → Deploy contract editor → Run workflow 手動重新部署。
+
+## 部署方式二：在 Cloudflare 後台手動設定
 
 1. **建立 D1 資料庫**：Cloudflare 後台 → Storage & Databases → D1 → Create，名稱例如 `contract-editor`。
 2. **建立 R2 儲存桶**：後台 → R2 Object Storage → Create bucket，名稱例如 `contract-editor-images`。（第一次使用 R2 需要先在後台啟用。）

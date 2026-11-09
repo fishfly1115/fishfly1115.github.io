@@ -1,0 +1,128 @@
+# Deploys contract-editor/ to Cloudflare Pages.
+# On first run it also creates the Pages project, the D1 database and the R2 bucket it needs.
+#
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN     token with Account: Cloudflare Pages Edit, D1 Edit, Workers R2 Storage Edit
+#   CLOUDFLARE_ACCOUNT_ID    your Cloudflare account ID
+#   CONTRACT_ADMIN_PASSWORD  password for the contract editor's home page
+name: Deploy contract editor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contract-editor/**"
+      - ".github/workflows/deploy-contract-editor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-contract-editor
+  cancel-in-progress: false
+
+env:
+  PROJECT_NAME: contract-editor
+  D1_NAME: contract-editor
+  R2_NAME: contract-editor-images
+  WRANGLER_VERSION: 3.99.0
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contract-editor
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ADMIN_PASSWORD: ${{ secrets.CONTRACT_ADMIN_PASSWORD }}
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check secrets
+        run: |
+          missing=""
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -n "$ADMIN_PASSWORD" ] || missing="$missing CONTRACT_ADMIN_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::缺少 GitHub secrets:$missing。請到 repo 的 Settings → Secrets and variables → Actions 新增後，再到 Actions 頁面重新執行。"
+            exit 1
+          fi
+
+      - name: Create Cloudflare resources if missing
+        id: resources
+        run: |
+          set -euo pipefail
+          api() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$@"; }
+          base="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+
+          # Token check gives a clear message instead of a confusing failure later.
+          if [ "$(api "$base/pages/projects?per_page=1" | jq -r '.success')" != "true" ]; then
+            echo "::error::Cloudflare API Token 或帳戶 ID 無效，或權限不足（需要 Cloudflare Pages Edit）。"
+            api "$base/pages/projects?per_page=1" | jq '.errors'
+            exit 1
+          fi
+
+          # Pages project
+          if [ "$(api "$base/pages/projects/$PROJECT_NAME" | jq -r '.success')" != "true" ]; then
+            echo "Creating Pages project $PROJECT_NAME"
+            api -X POST "$base/pages/projects" -d "{\"name\":\"$PROJECT_NAME\",\"production_branch\":\"main\"}" | jq -e '.success' > /dev/null \
+              || { echo "::error::無法建立 Pages 專案"; exit 1; }
+          fi
+          subdomain=$(api "$base/pages/projects/$PROJECT_NAME" | jq -r '.result.subdomain')
+          echo "subdomain=$subdomain" >> "$GITHUB_OUTPUT"
+
+          # D1 database
+          d1_id=$(api "$base/d1/database?name=$D1_NAME" | jq -r --arg n "$D1_NAME" '.result[]? | select(.name==$n) | .uuid' | head -n1)
+          if [ -z "$d1_id" ]; then
+            echo "Creating D1 database $D1_NAME"
+            d1_id=$(api -X POST "$base/d1/database" -d "{\"name\":\"$D1_NAME\"}" | jq -r '.result.uuid // empty')
+            [ -n "$d1_id" ] || { echo "::error::無法建立 D1 資料庫（API Token 需要 D1 Edit 權限）"; exit 1; }
+          fi
+
+          # R2 bucket (optional: R2 has to be enabled once in the dashboard; without it image upload is off)
+          r2_ok=false
+          if [ "$(api "$base/r2/buckets/$R2_NAME" | jq -r '.success')" = "true" ]; then
+            r2_ok=true
+          elif [ "$(api -X POST "$base/r2/buckets" -d "{\"name\":\"$R2_NAME\"}" | jq -r '.success')" = "true" ]; then
+            echo "Created R2 bucket $R2_NAME"; r2_ok=true
+          else
+            echo "::warning::無法建立 R2 儲存桶，圖片上傳功能會先停用。請到 Cloudflare 後台啟用 R2，並確認 API Token 有 Workers R2 Storage Edit 權限，再重新執行。"
+          fi
+
+          {
+            echo "name = \"$PROJECT_NAME\""
+            echo "pages_build_output_dir = \"public\""
+            echo "compatibility_date = \"2024-09-23\""
+            echo ""
+            echo "[[d1_databases]]"
+            echo "binding = \"DB\""
+            echo "database_name = \"$D1_NAME\""
+            echo "database_id = \"$d1_id\""
+            if [ "$r2_ok" = true ]; then
+              echo ""
+              echo "[[r2_buckets]]"
+              echo "binding = \"IMAGES\""
+              echo "bucket_name = \"$R2_NAME\""
+            fi
+          } > wrangler.toml
+          cat wrangler.toml
+
+      - name: Set admin password
+        run: printf '%s' "$ADMIN_PASSWORD" | npx --yes "wrangler@$WRANGLER_VERSION" pages secret put ADMIN_PASSWORD --project-name "$PROJECT_NAME"
+
+      - name: Deploy
+        run: npx --yes "wrangler@$WRANGLER_VERSION" pages deploy --project-name "$PROJECT_NAME" --branch main --commit-dirty=true
+
+      - name: Summary
+        run: |
+          url="https://${{ steps.resources.outputs.subdomain }}"
+          echo "合約共同編輯器已部署：$url" | tee -a "$GITHUB_STEP_SUMMARY"
