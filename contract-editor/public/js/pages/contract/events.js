@@ -8,13 +8,25 @@ import { fieldChange } from "./actions/fields.js";
 import { doImport, doReimport, pickDocx, pickRevised } from "./actions/importing.js";
 import { S, api, ctx } from "./context.js";
 import { render } from "./render.js";
-import { docTitle, myLink, roundNo } from "./state.js";
-import { poll, refresh } from "./sync.js";
+import { docTitle, isWide, myLink, roundNo, theirsClauses } from "./state.js";
+import { fail, poll, refresh } from "./sync.js";
 import { closePop, openPop } from "./views/field-popover.js";
-import { gotoNextPending } from "./views/outline.js";
+import { gotoNextPending, locate } from "./actions/navigate.js";
 import { renderHeader } from "./views/toolbar.js";
 
+// 全部接受：逐條送出後重新載入一次
+async function acceptAll() {
+  const ids = theirsClauses().map((c) => c.id);
+  S.acceptAll = false; S.busy = true; render();
+  let done = 0;
+  try { for (const id of ids) { await api(`clauses/${id}/accept`, {}); done++; } toast(`已接受 ${done} 條修訂`); }
+  catch (e) { fail(e); }
+  S.busy = false; await refresh();
+}
+
 export function bindEvents() {
+  // 版面寬度跨過斷點時（審閱面板／底部審閱列）重新繪製
+  for (const q of ["(min-width: 1280px)", "(max-width: 960px)"]) window.matchMedia(q).addEventListener("change", () => render());
   // 點選可填寫欄位：□ 直接切換勾選，日期與空格開啟填寫視窗。用捕獲階段，先於一般按鈕處理。
   document.addEventListener("click", (e) => {
     const fx = e.target.closest(".fx");
@@ -60,14 +72,19 @@ export function bindEvents() {
       case "down": simple(`clauses/${id}/move`, { dir: 1 }); break;
       case "delete-open": S.confirm = { id, kind: "delete" }; render(); break;
       case "delete-do": simple(`clauses/${id}/delete`, {}, "已提議刪除，他方接受後才會正式刪除"); break;
-      case "accept": simple(`clauses/${id}/accept`, {}, "已接受"); break;
-      case "revert-open": S.confirm = { id, kind: "revert" }; render(); $("reason-" + id)?.focus(); break;
+      case "accept": if (S.focusPending === id) S.focusPending = null; simple(`clauses/${id}/accept`, {}, "已接受"); break;
+      case "revert-open": S.confirm = { id, kind: "revert" }; S.focusPending = id; render(); (isWide() ? $("preason-" + id) : $("reason-" + id))?.focus(); if (!isWide()) document.getElementById("c-" + id)?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
       case "confirm-cancel": S.confirm = null; render(); break;
-      case "revert-do": simple(`clauses/${id}/revert`, { note: ($("reason-" + id)?.value || "").trim() }, "已恢復成改動前的樣子"); break;
+      case "revert-do": simple(`clauses/${id}/revert`, { note: (b.closest(".confirm")?.querySelector("input")?.value || "").trim() }, "已恢復成改動前的樣子"); break;
       case "toggle-plain": S.plainView.has(id) ? S.plainView.delete(id) : S.plainView.add(id); render(); break;
       case "expand": S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id); render(); break;
-      case "goto": ev.preventDefault(); S.view = "contract"; S.outlineOpen = false; render(); document.getElementById("c-" + id)?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
-      case "next-pending": S.view = "contract"; S.outlineOpen = false; render(); gotoNextPending(); break;
+      case "goto": ev.preventDefault(); locate(id, { flash: false }); break;
+      case "locate": locate(id); break;
+      case "next-pending": gotoNextPending(); break;
+      case "panel-tab": S.panelTab = b.dataset.v; S.peopleOpen = S.panelTab === "people"; S.forcePeople = true; render(); break;
+      case "accept-all": S.acceptAll = true; render(); break;
+      case "accept-all-cancel": S.acceptAll = false; render(); break;
+      case "accept-all-do": acceptAll(); break;
       case "outline-toggle": S.outlineOpen = !S.outlineOpen; render(); break;
       case "see-log": S.view = "log"; S.filter = "all"; render(); break;
       case "mark-seen": S.lastSeen = Date.now(); render(); api("seen", {}).catch(() => {}); break;
@@ -97,7 +114,11 @@ export function bindEvents() {
       case "import-pick": S.menu = null; $("docx-input").value = ""; $("docx-input").click(); break;
       case "import-go": doImport(); break;
       case "import-cancel": S.importPreview = null; render(); break;
-      case "people": S.peopleOpen = !S.peopleOpen; S.invited = null; render(); break;
+      case "people":
+        // 寬螢幕：切換右側面板的「成員」分頁；其他：在頁首展開成員面板
+        if (isWide()) { S.panelTab = S.panelTab === "people" ? "review" : "people"; S.peopleOpen = S.panelTab === "people"; }
+        else S.peopleOpen = !S.peopleOpen;
+        S.invited = null; S.forcePeople = true; render(); break;
       case "copy-invite": copy(S.invited.link, "已複製，請傳給他方"); break;
       case "copy-mine": copy(myLink(), "已複製您的專屬連結"); break;
       case "revoke": simple(`participants/${id}/remove`, {}, "已停用這條連結"); break;

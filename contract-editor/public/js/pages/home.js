@@ -15,12 +15,20 @@ import { tplPicker } from "../ui/template-picker.js";
 export function startHome() {
   let pw = store.get("ce:admin") || "";
   let tpls = null, list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "", rowMenu = null;
-  let only = store.get("ce:home:filter") || "all";
+  let only = store.get("ce:home:filter");
+  const SIDE = { A: "甲方", B: "乙方" };
+  // 依「輪到誰」分組；統計卡同時是篩選器
+  const BUCKETS = [["mine", "待您處理", "他方修訂待審閱、待確認結果"], ["other", "等待他方", "已送他方審閱或確認"], ["editing", "修訂中", "雙方仍在修訂"], ["final", "已定稿", "可匯出定稿本"]];
+  const turnOf = (c) => c.turn || (c.handoff?.status === "final" ? "none" : c.pendingCount ? "me" : "both");
+  const bucketOf = (c) => ({ me: "mine", other: "other", both: "editing", none: "final" })[turnOf(c)];
   const STATUS = { editing: ["修訂中", "plain"], review: ["審閱中", "theirs"], reviewed: ["待確認", "mine"], final: ["已定稿", "ok"] };
   $("csource").textContent = "";
   $("tabs").hidden = true;
   async function load() {
-    try { list = (await adminApi(pw, "contracts")).contracts; store.set("ce:admin", pw); }
+    try {
+      list = (await adminApi(pw, "contracts")).contracts; store.set("ce:admin", pw);
+      if (!only) only = list.some((c) => bucketOf(c) === "mine") ? "mine" : "all";
+    }
     catch (e) { if (e.status === 401) { list = null; store.set("ce:admin", null); pw = ""; } toast(e.message); }
     draw();
   }
@@ -30,16 +38,19 @@ export function startHome() {
   function drawHeader() {
     document.querySelector("header.top").hidden = !list;
     if (!list) return;
-    $("ctitle").textContent = "契約案件";
-    const pending = list.filter((c) => c.pendingCount).length;
+    $("ctitle").hidden = true;
+    const count = (k) => list.filter((c) => bucketOf(c) === k).length;
+    const label = BUCKETS.find(([k]) => k === only)?.[1];
     $("exportbar").innerHTML = `
-      <div class="seg" role="group" aria-label="篩選">
-        <button data-act="filter" data-v="all" aria-pressed="${only === "all"}">全部 <span class="n">${list.length}</span></button>
-        <button data-act="filter" data-v="pending" aria-pressed="${only === "pending"}">有待審閱 <span class="n">${pending}</span></button>
-      </div>
-      ${list.length > 4 ? `<input id="q" class="inp search" type="search" value="${esc(q)}" placeholder="搜尋契約名稱、案號或他方" aria-label="搜尋契約">` : ""}
-      <div class="grow"></div>
-      <button class="btn primary" data-act="new">新增契約</button>`;
+      <div class="home-head"><h1>契約案件</h1><div class="grow"></div><button class="btn primary" data-act="new">＋ 新增契約</button></div>
+      <div class="stats-grid" role="group" aria-label="依處理狀態篩選">${BUCKETS.map(([k, name, sub]) => `
+        <button class="stat" data-act="filter" data-v="${only === k ? "all" : k}" data-tone="${k}" aria-pressed="${only === k}">
+          <span class="stat-label"><span class="dot"></span>${name}</span>
+          <span class="stat-n">${count(k)}<small>件</small></span>
+          <span class="stat-sub">${sub}</span></button>`).join("")}</div>
+      <div class="filterbar">${label ? `<span class="fchip">篩選：${label}<button data-act="clear-filter" aria-label="清除篩選">✕</button></span><button class="linkbtn" data-act="clear-filter">清除篩選</button>` : `<span class="meta-s">全部 ${list.length} 件</span>`}
+        <div class="grow"></div>
+        ${list.length > 4 ? `<input id="q" class="inp search" type="search" value="${esc(q)}" placeholder="搜尋契約名稱、案號或他方" aria-label="搜尋契約">` : ""}</div>`;
   }
   function row(c) {
     const [st, cls] = STATUS[c.handoff?.status] || STATUS.editing;
@@ -51,15 +62,22 @@ export function startHome() {
     if (confirmDel === c.id) return `<tr class="editing danger"><td colspan="6"><div class="row">
         <div class="grow"><strong>刪除「${esc(c.title)}」？</strong><div class="meta-s">條文、修訂紀錄與圖片都會刪除，無法復原</div></div>
         <button class="btn" data-act="del-cancel">取消</button><button class="btn danger" data-act="del-do" data-id="${c.id}">刪除</button></div></td></tr>`;
-    return `<tr>
+    return `<tr class="${turnOf(c) === "me" ? "my-turn" : ""}">
       <td class="c-title"><a class="t" href="/c/${c.id}">${esc(c.title)}</a><div class="meta-s">${c.caseNo ? `案號 ${esc(c.caseNo)} · ` : ""}${c.clauseCount ? `${c.clauseCount} 條` : "尚無條文"}</div></td>
       <td data-label="狀態"><span class="pill ${cls}">${st}</span><span class="meta-s"> 第 ${c.handoff?.round || 1} 輪</span></td>
-      <td data-label="待審閱" class="num">${c.pendingCount ? `<span class="pill theirs">${c.pendingCount} 處</span>` : `<span class="meta-s">—</span>`}</td>
+      <td data-label="輪到" class="c-turn">${turnHtml(c)}</td>
       <td data-label="他方" class="c-other">${others.length ? esc(others.join("、")) : `<span class="meta-s">尚未邀請</span>`}</td>
       <td data-label="更新時間" class="num"><span class="meta-s">${fmt(c.updatedAt)}</span></td>
       <td class="c-act"><div class="menu-wrap"><button class="btn icon ghost" data-act="row-menu" data-id="${c.id}" aria-label="更多動作" aria-haspopup="menu" aria-expanded="${rowMenu === c.id}">⋯</button>
         ${rowMenu === c.id ? `<div class="menu" role="menu"><button role="menuitem" data-act="rename" data-id="${c.id}"><strong>編輯名稱與案號</strong></button><button role="menuitem" class="danger" data-act="del" data-id="${c.id}"><strong>刪除契約</strong></button></div>` : ""}</div></td>
     </tr>`;
+  }
+  function turnHtml(c) {
+    const t = turnOf(c), mine = c.ownerSide || "A", other = mine === "A" ? "B" : "A";
+    if (t === "me") return `<strong class="turn-me">您（${SIDE[mine]}）</strong>${c.pendingForMe ? `<div class="meta-s">${c.pendingForMe} 處待審閱</div>` : ""}`;
+    if (t === "other") return `<span>${SIDE[other]}</span>`;
+    if (t === "both") return `<span class="meta-s">雙方</span>`;
+    return `<span class="meta-s">—</span>`;
   }
   // 範本在使用者輸入時才載入完成：重畫表單但保留已輸入的內容
   function redrawKeepingInput() {
@@ -83,7 +101,7 @@ export function startHome() {
       return;
     }
     const kw = q.trim().toLowerCase();
-    const shown = list.filter((c) => (only !== "pending" || c.pendingCount)
+    const shown = list.filter((c) => (only === "all" || bucketOf(c) === only)
       && (!kw || c.title.toLowerCase().includes(kw) || (c.caseNo || "").toLowerCase().includes(kw) || c.participants.some((p) => (p.name || p.label || "").toLowerCase().includes(kw))));
     const empty = !list.length
       ? `<div class="empty"><p>尚無契約案件</p><button class="btn primary" data-act="new">新增契約</button></div>`
@@ -96,7 +114,7 @@ export function startHome() {
         <div class="field grow"><label for="nrole">本方身分</label><select id="nrole" class="inp"><option>機關（甲方）</option><option>廠商（乙方）</option></select></div></div>
         <div class="row"><div class="grow"></div><button class="btn" type="button" data-act="new-cancel">取消</button><button class="btn primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "建立中…" : "建立並開啟"}</button></div></form>` : ""}
       ${shown.length ? `<div class="card table-card"><table class="ctable">
-        <thead><tr><th>契約名稱</th><th>狀態</th><th class="num">待審閱</th><th>他方</th><th class="num">更新時間</th><th><span class="sr">動作</span></th></tr></thead>
+        <thead><tr><th>契約名稱</th><th>狀態</th><th>輪到</th><th>他方</th><th class="num">更新時間</th><th><span class="sr">動作</span></th></tr></thead>
         <tbody>${shown.map(row).join("")}</tbody></table></div>` : empty}`;
     if (creating) {
       $("ntitle").focus();
@@ -153,8 +171,8 @@ export function startHome() {
     if (a === "del-cancel") { confirmDel = null; draw(); }
     if (a === "del-do") { try { await adminApi(pw, "contracts/" + b.dataset.id, "DELETE"); toast("已刪除契約"); } catch (e) { toast(e.message); } confirmDel = null; load(); }
     if (a === "row-menu") { rowMenu = rowMenu === b.dataset.id ? null : b.dataset.id; draw(); return; }
-    if (a === "filter") { only = b.dataset.v; store.set("ce:home:filter", only === "all" ? null : only); draw(); }
-    if (a === "clear-filter") { only = "all"; q = ""; store.set("ce:home:filter", null); draw(); }
+    if (a === "filter") { only = b.dataset.v; store.set("ce:home:filter", only); draw(); }
+    if (a === "clear-filter") { only = "all"; q = ""; store.set("ce:home:filter", "all"); draw(); }
     if (a === "logout") { store.set("ce:admin", null); pw = ""; list = null; creating = false; draw(); }
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && list) load(); });

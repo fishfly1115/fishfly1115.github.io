@@ -50,8 +50,8 @@ async function startServer() {
   throw new Error("wrangler 未能在 60 秒內啟動");
 }
 
-async function newPage(browser, { admin } = {}) {
-  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1200, height: 900 } });
+async function newPage(browser, { admin, width = 1200 } = {}) {
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width, height: 900 } });
   await ctx.route("https://cdn.jsdelivr.net/npm/**", (route) => {
     const key = Object.keys(CDN_LIBS).find((k) => route.request().url().endsWith(k));
     return key ? route.fulfill({ path: join(ROOT, "node_modules", CDN_LIBS[key]), contentType: "application/javascript" }) : route.abort();
@@ -189,10 +189,14 @@ async function main() {
     step(`匯出 Word 修改後匯回（${stats}）`);
 
     // 7. 機關看到待審閱修訂，並匯出 PDF
-    const owner2 = await newPage(browser, { admin: PASSWORD });
+    // 寬螢幕：審閱改在右側面板，每條一張卡片，列出改了什麼
+    const owner2 = await newPage(browser, { admin: PASSWORD, width: 1440 });
     await owner2.goto(owner.url());
     await owner2.waitForSelector("section.clause[data-state=theirs]");
     assert.equal(await owner2.locator("section.clause[data-state=theirs]").count(), changed);
+    assert.equal(await owner2.locator(".rcard").count(), changed);
+    assert.match(await owner2.locator(".rcard .chg").first().innerText(), /乙方修訂/);
+    assert.ok(await owner2.locator("section.clause .rv-acts").first().isHidden(), "有面板時條文內不重複顯示接受／退回");
     await owner2.click("[data-act=export-open]");
     const pdfFile = join(work, "export.pdf");
     assert.ok(await download(owner2, pdfFile) > 10000);

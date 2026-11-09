@@ -16,7 +16,7 @@ contract-editor/
 │   ├── fonts/                   PDF 內嵌字型（Noto Sans TC）
 │   └── js/
 │       ├── main.js              進入點：依網址決定進首頁或契約頁
-│       ├── core/                與業務無關的基礎工具
+│       ├── core/                與業務無關的基礎工具（diff.js 另提供審閱卡片用的修訂摘要 changeList）
 │       │   ├── dom.js           $、esc、toast、複製、下載
 │       │   ├── format.js        日期時間格式、民國年
 │       │   ├── storage.js       localStorage 包裝
@@ -46,7 +46,9 @@ contract-editor/
 │               ├── render.js    依狀態重繪整頁
 │               ├── events.js    事件委派：data-act 按鈕、表單、欄位點選
 │               ├── views/       純畫面（回傳 HTML 字串）
-│               │   ├── turnbar.js       頂端「目前由何方處理」與下一步
+│               │   ├── turnbar.js       頂端列（位置、成員）與流程進度列（四個步驟、輪到誰、下一步）
+│               │   ├── review-panel.js  右側審閱面板：每條修訂一張卡片（改了什麼、接受／退回）、成員分頁
+│               │   ├── mobile-bar.js    手機底部審閱列（第 i／n 處、接受／退回）
 │               │   ├── outline.js       左側條文目錄（審閱狀態、跳到下一處待審閱）
 │               │   ├── toolbar.js       工具列、匯出選單
 │               │   ├── members.js       成員與連結
@@ -58,6 +60,7 @@ contract-editor/
 │               │   └── importing.js     匯入預覽、匯回比對
 │               └── actions/     使用者操作（呼叫 API、改狀態）
 │                   ├── fields.js     直接填寫（連續填寫合併為一筆修訂）
+│                   ├── navigate.js   定位條文、依序跳到下一處待審閱
 │                   ├── editing.js    編輯、儲存、圖片上傳
 │                   ├── importing.js  匯入 Word、匯回修訂版
 │                   └── exporting.js  匯出 PDF／Word
@@ -95,7 +98,7 @@ core/         基礎工具
 ```
 
 - 契約頁採「單一狀態 → 整頁重繪」：`context.js` 的 `S` 是唯一狀態來源，`render()` 依 `S` 產生畫面；`views/` 都是回傳 HTML 字串的純函式。所有使用者輸入的內容在輸出前都經 `esc()` 或 `sanitize()` 處理。
-- 版面：頂端列（品牌、目前輪到哪一方、下一步按鈕）固定在上方；契約頁左側為條文目錄，窄螢幕時收合成「目錄」抽屜。
+- 版面：頂端列與流程進度列固定在上方；契約頁為「條文目錄｜契約內容｜審閱面板」三欄。寬度 < 1280px 時審閱按鈕回到條文內；< 960px 時目錄收成抽屜，並以底部審閱列操作。
 - 事件統一在 `events.js` 以 `data-act` 委派，按鈕不各自綁定。
 - 第三方函式庫（mammoth、JSZip、docx、html2canvas、jsPDF）體積大，由 `core/loader.js` 在第一次需要時才載入；版本固定，且受 CSP 限制只允許 jsDelivr。
 

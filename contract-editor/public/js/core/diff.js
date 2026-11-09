@@ -74,3 +74,25 @@ export function diffHtml(a, b) {
   diffCache.set(key, out); return out;
 }
 export const diffText = (a, b) => renderDiff(diffTokens([...(a || "")].map(esc), [...(b || "")].map(esc)));
+
+// 修訂摘要：把兩段純文字的差異整理成「前文 · 原文 → 新文」清單（審閱卡片用）。
+// 改動落在數字或日期中間時，向前後延伸到完整的數字／日期（例如 1,000,000 → 1,200,000）。
+const JOIN = /[0-9A-Za-z,.年月日＿_]/;
+export function changeList(a, b, max = 4) {
+  const segs = diffTokens([...(a || "")], [...(b || "")]).map(([t, toks]) => [t, [...toks]]);
+  const out = [];
+  for (let i = 0; i < segs.length; i++) {
+    if (segs[i][0] === "=") continue;
+    let from = "", to = "";
+    const start = i;
+    while (i < segs.length && segs[i][0] !== "=") { if (segs[i][0] === "-") from += segs[i][1].join(""); else to += segs[i][1].join(""); i++; }
+    const prev = start > 0 ? segs[start - 1][1] : [], next = i < segs.length ? segs[i][1] : [];
+    let head = "", tail = "";
+    while (prev.length && head.length < 8 && JOIN.test(prev[prev.length - 1])) head = prev.pop() + head;
+    while (next.length && tail.length < 8 && JOIN.test(next[0])) tail += next.shift();
+    i--;
+    const ctx = prev.join("").replace(/\s+/g, " ").trim().split(/[，。；：、（）()「」\s]/).filter(Boolean).pop() || "";
+    out.push({ ctx: ctx.slice(-8), from: (head + from + tail).trim(), to: (head + to + tail).trim() });
+  }
+  return { items: out.slice(0, max), more: Math.max(0, out.length - max) };
+}

@@ -12,25 +12,30 @@ button { cursor: pointer }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 .wrap { max-width: 820px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
 
-/* 頂端列：品牌＋目前進度＋下一步 */
-.wide { max-width: 1240px }
+/* 頂端列：品牌、目前位置、成員與全域動作；契約頁下方另有流程進度列 */
 .appbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--sheet); border-bottom: 1px solid var(--line) }
-.appbar-in { display: flex; align-items: center; gap: 10px 20px; min-height: 60px; padding-block: 8px; flex-wrap: wrap }
+.appbar-in { display: flex; align-items: center; gap: 10px 16px; min-height: 56px; padding: 8px max(24px, env(safe-area-inset-right, 0px)) 8px max(24px, env(safe-area-inset-left, 0px)) }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 15px; flex: none }
 .brand-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-family: var(--f-clause); font-size: 15px }
-.turn { flex: 1 1 420px; display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; min-width: 0 }
-.turn:empty { display: none }
-.stage { display: flex; gap: 10px; align-items: center; min-width: 0; flex: 1 1 300px; padding: 4px 12px; border-left: 1px solid var(--line) }
+.crumb-bar { display: flex; align-items: center; gap: 8px; min-width: 0; padding-left: 16px; border-left: 1px solid var(--line); font-size: 13px }
+.crumb-bar:empty { display: none }
+.crumb-bar .sep { color: var(--muted) }
+.crumb-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0 }
+.crumb-case { font-family: var(--f-data); font-size: 12px; color: var(--muted); white-space: nowrap }
+.topact { display: flex; align-items: center; gap: 8px; flex: none }
+.avatars { display: flex; margin-right: 4px }
+.avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 500; color: var(--accent-ink); background: var(--turn-fg); border: 2px solid var(--sheet); margin-left: -6px }
+.avatar:first-child { margin-left: 0 }
+.avatar[data-side="mine"] { background: var(--accent) }
+.avatar.more { background: var(--paper); color: var(--muted) }
 .stage-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted) }
-.stage[data-mine="1"] { background: var(--turn-bg); border-left-color: transparent; border-radius: 8px }
-.stage[data-mine="1"] .stage-dot { background: var(--turn-fg) }
-.stage[data-mine="1"] .stage-title { color: var(--turn-fg) }
-.stage-text { min-width: 0 }
-.stage-title { font-weight: 700; font-size: 14px; line-height: 1.4; text-wrap: balance }
-.stage-sub { color: var(--muted); font-size: 12px; line-height: 1.4 }
 
-/* 版面：契約頁左側為條文目錄，首頁為單欄 */
-.layout.with-outline { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 0 36px; align-items: start }
+/* 版面：首頁為置中單欄；契約頁為「條文目錄｜契約內容｜審閱面板」三欄 */
+.layout { max-width: 1240px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)) }
+.layout.with-outline { max-width: none; display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 0 28px; align-items: start; padding-right: 24px }
+.layout.with-outline.with-panel { grid-template-columns: 264px minmax(0, 1fr) 380px; padding-right: 0 }
+.layout.with-panel:not(.with-outline) { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 0 28px; align-items: start; padding-right: 0 }
+.with-outline .content > *, .with-panel .content > * { max-width: 880px; margin-inline: auto }
 .content { min-width: 0 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
 .only-narrow { display: none }
@@ -162,15 +167,37 @@ select.inp { appearance: auto }
 .brand.big { font-size: 18px }
 .brand.big .brand-mark { width: 36px; height: 36px; font-size: 18px; border-radius: 9px }
 
-/* 窄螢幕：頂端列只留品牌標誌、目前進度與下一步 */
+/* 窄螢幕：頂端列只留品牌標誌、契約名稱與主要動作 */
 @media (max-width: 640px) {
-  .appbar-in { min-height: 52px; gap: 8px 12px }
-  .brand-name { display: none }
-  .turn { flex-basis: 0; flex-grow: 1 }
-  .stage { flex: 1 1 160px; border-left: 0; padding: 4px 8px }
-  .stage-sub { display: none }
-  .turn .actions { flex: 1 1 100% }
-  .turn .actions .btn { flex: 1 1 auto }
+  .appbar-in { min-height: 52px; gap: 8px 10px; padding-inline: 12px }
+  .brand-name, .avatars, .crumb-bar .crumb, .crumb-bar .sep, .crumb-case { display: none }
+  .crumb-bar { padding-left: 10px; font-size: 14px }
+  .topact .btn { padding: 6px 10px; font-size: 13px }
   h1 { font-size: 21px }
   header.top { padding-top: 16px }
 }
+
+/* 首頁：統計卡（同時是篩選）＋契約表格 */
+.home-head { flex: 1 1 100%; display: flex; align-items: center; gap: 12px }
+.home-head h1 { font-family: var(--f-body); font-size: 26px; letter-spacing: 0 }
+.stats-grid { flex: 1 1 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
+.stat { text-align: left; border: 2px solid transparent; background: var(--sheet); border-radius: 10px; box-shadow: var(--shadow); padding: 14px 16px; display: grid; gap: 2px; color: var(--ink) }
+.stat:hover { border-color: var(--line) }
+.stat-label { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 500; color: var(--muted) }
+.stat .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted) }
+.stat-n { font-size: 30px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums }
+.stat-n small { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 4px }
+.stat-sub { font-size: 12px; color: var(--muted) }
+.stat[data-tone="mine"] .dot { background: var(--turn-fg) } .stat[data-tone="mine"] .stat-label { color: var(--turn-fg) }
+.stat[data-tone="other"] .dot { background: var(--accent) }
+.stat[data-tone="final"] .dot { background: var(--ins-fg) }
+.stat[data-tone="mine"][aria-pressed="true"] { border-color: var(--turn-fg) }
+.stat[data-tone="other"][aria-pressed="true"] { border-color: var(--accent) }
+.stat[data-tone="editing"][aria-pressed="true"] { border-color: var(--muted) }
+.stat[data-tone="final"][aria-pressed="true"] { border-color: var(--ins-fg) }
+.filterbar { flex: 1 1 100%; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; min-height: 38px }
+.fchip { display: inline-flex; gap: 4px; align-items: center; background: var(--turn-bg); color: var(--turn-fg); border-radius: 999px; padding: 3px 4px 3px 12px; font-size: 13px; font-weight: 500 }
+.fchip button { border: 0; background: none; color: inherit; width: 24px; height: 24px; border-radius: 50%; font-size: 11px }
+.ctable tr.my-turn td { background: color-mix(in srgb, var(--turn-bg) 45%, var(--sheet)) }
+.turn-me { color: var(--turn-fg) }
+@media (max-width: 760px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px } .stat-n { font-size: 24px } }
