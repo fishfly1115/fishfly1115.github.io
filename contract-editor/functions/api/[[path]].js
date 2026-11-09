@@ -16,7 +16,10 @@ async function init(db) {
   if (ready) return;
   await db.batch(SCHEMA.map((s) => db.prepare(s)));
   // Added after first release: procurement case number (案號).
-  try { await db.prepare("ALTER TABLE contracts ADD COLUMN case_no TEXT").run(); } catch { /* already there */ }
+  for (const sql of ["ALTER TABLE contracts ADD COLUMN case_no TEXT", "ALTER TABLE participants ADD COLUMN side TEXT",
+    "ALTER TABLE participants ADD COLUMN title TEXT", "ALTER TABLE participants ADD COLUMN revoked INTEGER NOT NULL DEFAULT 0"]) {
+    try { await db.prepare(sql).run(); } catch { /* column already there */ }
+  }
   ready = true;
 }
 
@@ -77,7 +80,21 @@ async function participant(request, env, cid) {
 /* ---------- shapes ---------- */
 const clauseOut = (c) => ({ id: c.id, order: c.ord, title: c.title, html: c.html, removed: !!c.removed, rev: c.rev, updatedBy: c.updated_by, updatedAt: c.updated_at });
 const revOut = (r) => ({ id: r.id, kind: r.kind, clauseId: r.clause_id, ...JSON.parse(r.data), fmt: "html", by: r.by_id, at: r.at, status: r.status, round: r.round, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, note: r.note });
-const partOut = (p) => ({ id: p.id, role: p.role, label: p.label, name: p.name, lastSeen: p.last_seen });
+// Each person belongs to one side of the contract: A = 甲方, B = 乙方.
+const sideFromLabel = (label) => /乙方|廠商/.test(label || "") ? "B" : /甲方|機關/.test(label || "") ? "A" : null;
+function sideOf(p, ownerSide) {
+  if (p.side === "A" || p.side === "B") return p.side;
+  const s = sideFromLabel(p.label);
+  if (p.role === "owner") return s || "A";
+  return s || (ownerSide === "A" ? "B" : "A");
+}
+const partOut = (p, ownerSide) => ({ id: p.id, role: p.role, label: p.label, name: p.name, title: p.title || "", side: sideOf(p, ownerSide), revoked: !!p.revoked, lastSeen: p.last_seen });
+async function sides(env, cid) {
+  const { results } = await env.DB.prepare("SELECT * FROM participants WHERE contract_id = ? ORDER BY created_at").bind(cid).all();
+  const owner = results.find((p) => p.role === "owner");
+  const ownerSide = owner ? sideOf(owner, "A") : "A";
+  return { list: results, ownerSide, side: (p) => sideOf(p, ownerSide) };
+}
 
 async function loadContract(env, cid) {
   const c = await env.DB.prepare("SELECT * FROM contracts WHERE id = ?").bind(cid).first();
@@ -154,7 +171,7 @@ async function adminRoutes(request, env, seg) {
     const id = uid(), pid = uid(), key = newKey(), t = now();
     await env.DB.batch([
       env.DB.prepare("INSERT INTO contracts (id, title, case_no, created_at, version, handoff) VALUES (?, ?, ?, ?, 1, ?)").bind(id, title, caseNo, t, JSON.stringify({ status: "editing", round: 1, by: null, at: t })),
-      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, created_at) VALUES (?, ?, ?, 'owner', ?, ?)").bind(pid, id, await sha256(key), ownerLabel, t)
+      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, side, created_at) VALUES (?, ?, ?, 'owner', ?, ?, ?)").bind(pid, id, await sha256(key), ownerLabel, sideFromLabel(ownerLabel) || "A", t)
     ]);
     return json({ id, key });
   }
@@ -179,20 +196,24 @@ async function contractRoutes(request, env, seg) {
   const cid = seg[1], m = request.method, action = seg.slice(2).join("/");
   const me = await participant(request, env, cid);
   const contract = await loadContract(env, cid);
+  const team = await sides(env, cid);
+  const mySide = team.side(me);
+  const sameSide = team.list.filter((p) => team.side(p) === mySide).map((p) => p.id);
+  const otherSide = team.list.filter((p) => team.side(p) !== mySide).map((p) => p.id);
   const owner = me.role === "owner";
   const needOwner = () => { if (!owner) throw new HttpError(403, "forbidden", "僅契約建立者可執行此操作"); };
 
   if (m === "GET" && action === "version") return json({ version: contract.version });
   if (m === "GET" && action === "state") {
-    const [{ results: ps }, { results: cs }, { results: rs }] = await Promise.all([
-      env.DB.prepare("SELECT * FROM participants WHERE contract_id = ? ORDER BY created_at").bind(cid).all(),
+    const ps = team.list;
+    const [{ results: cs }, { results: rs }] = await Promise.all([
       env.DB.prepare("SELECT * FROM clauses WHERE contract_id = ? ORDER BY ord").bind(cid).all(),
       env.DB.prepare("SELECT * FROM revisions WHERE contract_id = ? ORDER BY at DESC").bind(cid).all()
     ]);
     return json({
-      me: { ...partOut(me) },
+      me: partOut(me, team.ownerSide),
       contract: { id: cid, title: contract.title, caseNo: contract.case_no || "", source: contract.source, version: contract.version, handoff: contract.handoff },
-      participants: ps.map(partOut), clauses: cs.map(clauseOut), revisions: rs.map(revOut)
+      participants: ps.map((p) => partOut(p, team.ownerSide)), clauses: cs.map(clauseOut), revisions: rs.map(revOut)
     });
   }
   if (m === "GET" && seg[2] === "images") throw new HttpError(404, "not_found", "");
@@ -213,8 +234,9 @@ async function contractRoutes(request, env, seg) {
   const b = await body(request);
 
   if (action === "me") {
-    const name = str(b.name ?? "", 60, "名字").trim();
-    await env.DB.batch([env.DB.prepare("UPDATE participants SET name = ? WHERE id = ?").bind(name, me.id), touch(env, { ...contract, handoff: { status: "x" } }, me)]);
+    const name = str(b.name ?? me.name ?? "", 60, "名字").trim();
+    const title = str(b.title ?? me.title ?? "", 30, "角色").trim();
+    await env.DB.batch([env.DB.prepare("UPDATE participants SET name = ?, title = ? WHERE id = ?").bind(name, title, me.id), touch(env, { ...contract, handoff: { status: "x" } }, me)]);
     return json({ ok: true });
   }
   if (action === "rename") {
@@ -230,19 +252,23 @@ async function contractRoutes(request, env, seg) {
     return json({ ok: true });
   }
   if (action === "invite") {
-    needOwner();
-    const label = str(b.label ?? "", 60, "身分說明").trim() || "廠商（乙方）";
+    // The creator may invite either side; everyone else adds colleagues to their own side.
+    const side = owner && (b.side === "A" || b.side === "B") ? b.side : mySide;
+    const label = str(b.label ?? "", 60, "單位").trim() || (side === mySide ? me.label || (side === "A" ? "機關（甲方）" : "廠商（乙方）") : (side === "A" ? "機關（甲方）" : "廠商（乙方）"));
     const key = newKey();
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, created_at) VALUES (?, ?, ?, 'party', ?, ?)").bind(uid(), cid, await sha256(key), label, now()),
+      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, side, created_at) VALUES (?, ?, ?, 'party', ?, ?, ?)").bind(uid(), cid, await sha256(key), label, side, now()),
       touch(env, { ...contract, handoff: { status: "x" } }, me)
     ]);
     return json({ key });
   }
   if (seg[2] === "participants" && seg[4] === "remove") {
-    needOwner();
-    if (seg[3] === me.id) throw new HttpError(400, "bad_request", "不能停用自己的連結");
-    await env.DB.batch([env.DB.prepare("DELETE FROM participants WHERE id = ? AND contract_id = ? AND role <> 'owner'").bind(seg[3], cid), touch(env, { ...contract, handoff: { status: "x" } }, me)]);
+    const target = team.list.find((p) => p.id === seg[3]);
+    if (!target) throw new HttpError(404, "not_found", "查無此成員");
+    if (!owner && team.side(target) !== mySide) throw new HttpError(403, "forbidden", "僅能停用本方成員的連結");
+    if (seg[3] === me.id || target.role === "owner") throw new HttpError(400, "bad_request", "無法停用此連結");
+    // keep the row so revision history still shows the person; only the key stops working
+    await env.DB.batch([env.DB.prepare("UPDATE participants SET revoked = 1, key_hash = ? WHERE id = ? AND contract_id = ?").bind("revoked:" + uid(), seg[3], cid), touch(env, { ...contract, handoff: { status: "x" } }, me)]);
     return json({ ok: true });
   }
   if (action === "import") {
@@ -270,6 +296,39 @@ async function contractRoutes(request, env, seg) {
     await env.DB.prepare("UPDATE contracts SET version = version + 1, handoff = ? WHERE id = ?").bind(JSON.stringify({ status: b.status, round, by: me.id, at: now() }), cid).run();
     return json({ ok: true });
   }
+  if (action === "bulk") {
+    // A whole revised Word file: one tracked revision per changed clause, all or nothing.
+    if (!Array.isArray(b.changes) || !b.changes.length || b.changes.length > 500) throw new HttpError(400, "bad_request", "沒有需要送出的修訂");
+    const { results: all } = await env.DB.prepare("SELECT * FROM clauses WHERE contract_id = ?").bind(cid).all();
+    const byId = new Map(all.map((c) => [c.id, c]));
+    const conflicts = [], stmts = [], stamp = now();
+    for (const ch of b.changes) {
+      if (ch.type === "edit" || ch.type === "delete") {
+        const c = byId.get(ch.clauseId);
+        if (!c) { conflicts.push({ clauseId: ch.clauseId, title: ch.title || "" }); continue; }
+        if (ch.baseRev !== c.rev) { conflicts.push({ clauseId: c.id, title: c.title }); continue; }
+        if (ch.type === "edit") {
+          const title = str(ch.title || c.title, MAX_TITLE, "條款標題").trim() || c.title, html = str(ch.html ?? "", MAX_HTML, "條款內容");
+          stmts.push(env.DB.prepare("UPDATE clauses SET title = ?, html = ?, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ?").bind(title, html, me.id, stamp, c.id));
+          stmts.push(addRev(env, contract, me, c.id, "edit", { clauseTitle: c.title, titleBefore: c.title, titleAfter: title, before: c.html, after: html, via: "word" }));
+        } else if (!c.removed) {
+          stmts.push(env.DB.prepare("UPDATE clauses SET removed = 1, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ?").bind(me.id, stamp, c.id));
+          stmts.push(addRev(env, contract, me, c.id, "delete", { clauseTitle: c.title, titleBefore: c.title, before: c.html, via: "word" }));
+        }
+      } else if (ch.type === "add") {
+        const title = str(ch.title || "新條款", MAX_TITLE, "條款標題").trim() || "新條款", html = str(ch.html || "", MAX_HTML, "條款內容");
+        const ord = Number.isFinite(ch.order) ? ch.order : all.length;
+        const id = uid();
+        stmts.push(env.DB.prepare("INSERT INTO clauses (id, contract_id, ord, title, html, removed, rev, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)").bind(id, cid, ord, title, html, me.id, stamp));
+        stmts.push(addRev(env, contract, me, id, "add", { clauseTitle: title, titleAfter: title, after: html, via: "word" }));
+      }
+    }
+    if (conflicts.length) return json({ code: "conflict", message: `他方已修訂其中 ${conflicts.length} 條，請重新匯出最新版本後再修訂`, conflicts }, 409);
+    if (!stmts.length) return json({ ok: true, unchanged: true });
+    stmts.push(touch(env, contract, me));
+    await env.DB.batch(stmts);
+    return json({ ok: true, count: b.changes.length });
+  }
   if (action === "clauses/add") {
     const title = str(b.title || "新條款", MAX_TITLE, "條款標題").trim() || "新條款";
     const html = str(b.html || "", MAX_HTML, "條款內容");
@@ -295,12 +354,18 @@ async function contractRoutes(request, env, seg) {
       const html = str(b.html ?? "", MAX_HTML, "條款內容");
       if (b.baseRev !== c.rev) return json({ code: "conflict", message: "他方於您編輯期間已修訂本條", clause: clauseOut(c) }, 409);
       if (title === c.title && html === c.html) return json({ ok: true, unchanged: true });
+      // Several quick changes by the same person (ticking boxes, filling blanks) become one revision.
+      const last = await env.DB.prepare("SELECT * FROM revisions WHERE contract_id = ? AND clause_id = ? ORDER BY at DESC LIMIT 1").bind(cid, clauseId).first();
+      const merge = b.merge && last && last.status === "pending" && last.kind === "edit" && last.by_id === me.id && stamp - last.at < 30 * 60 * 1000;
+      const revStmt = merge
+        ? env.DB.prepare("UPDATE revisions SET data = ?, at = ? WHERE id = ?").bind(JSON.stringify({ ...JSON.parse(last.data), titleAfter: title, after: html }), stamp, last.id)
+        : addRev(env, contract, me, clauseId, "edit", { clauseTitle: c.title, titleBefore: c.title, titleAfter: title, before: c.html, after: html });
       const res = await env.DB.batch([
         env.DB.prepare("UPDATE clauses SET title = ?, html = ?, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ? AND rev = ?").bind(title, html, me.id, stamp, clauseId, c.rev),
-        addRev(env, contract, me, clauseId, "edit", { clauseTitle: c.title, titleBefore: c.title, titleAfter: title, before: c.html, after: html }),
+        revStmt,
         touch(env, contract, me)
       ]);
-      return json({ ok: true, changed: res[0].meta.changes });
+      return json({ ok: true, changed: res[0].meta.changes, rev: c.rev + 1 });
     }
     if (op === "move") {
       const dir = b.dir === -1 ? -1 : 1;
@@ -327,7 +392,7 @@ async function contractRoutes(request, env, seg) {
     }
     if (op === "accept") {
       await env.DB.batch([
-        env.DB.prepare("UPDATE revisions SET status = 'accepted', reviewed_by = ?, reviewed_at = ? WHERE clause_id = ? AND contract_id = ? AND status = 'pending' AND by_id <> ?").bind(me.id, stamp, clauseId, cid, me.id),
+        env.DB.prepare("UPDATE revisions SET status = 'accepted', reviewed_by = ?, reviewed_at = ? WHERE clause_id = ? AND contract_id = ? AND status = 'pending' AND by_id IN (SELECT value FROM json_each(?))").bind(me.id, stamp, clauseId, cid, JSON.stringify(otherSide)),
         env.DB.prepare("UPDATE contracts SET version = version + 1 WHERE id = ?").bind(cid)
       ]);
       return json({ ok: true });
@@ -347,7 +412,7 @@ async function contractRoutes(request, env, seg) {
       }
       await env.DB.batch([
         env.DB.prepare("UPDATE clauses SET title = ?, html = ?, removed = ?, ord = ?, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ?").bind(st.title, st.html, st.removed, st.ord, me.id, stamp, clauseId),
-        env.DB.prepare("UPDATE revisions SET status = CASE WHEN by_id = ? THEN 'withdrawn' ELSE 'reverted' END, reviewed_by = ?, reviewed_at = ?, note = ? WHERE clause_id = ? AND contract_id = ? AND status = 'pending'").bind(me.id, me.id, stamp, note, clauseId, cid),
+        env.DB.prepare("UPDATE revisions SET status = CASE WHEN by_id IN (SELECT value FROM json_each(?)) THEN 'withdrawn' ELSE 'reverted' END, reviewed_by = ?, reviewed_at = ?, note = ? WHERE clause_id = ? AND contract_id = ? AND status = 'pending'").bind(JSON.stringify(sameSide), me.id, stamp, note, clauseId, cid),
         env.DB.prepare("UPDATE contracts SET version = version + 1 WHERE id = ?").bind(cid)
       ]);
       return json({ ok: true });
