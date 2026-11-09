@@ -11,6 +11,7 @@ import { render } from "./render.js";
 import { docTitle, myLink, roundNo } from "./state.js";
 import { poll, refresh } from "./sync.js";
 import { closePop, openPop } from "./views/field-popover.js";
+import { gotoNextPending } from "./views/outline.js";
 import { renderHeader } from "./views/toolbar.js";
 
 export function bindEvents() {
@@ -27,6 +28,7 @@ export function bindEvents() {
     }
     if ($("pop") && !e.target.closest("#pop")) closePop();
     if (S.menu && !e.target.closest(".menu-wrap")) { S.menu = null; renderHeader(); }
+    if (S.outlineOpen && !e.target.closest("#outline,[data-act=outline-toggle]")) { S.outlineOpen = false; render(); }
   }, true);
   // 切回分頁時立即檢查他方是否有新變更
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
@@ -35,7 +37,11 @@ export function bindEvents() {
   document.addEventListener("change", (e) => {
     if (e.target.name === "efmt") { S.exportFmt = e.target.value; S.exportOnlyChecked = S.exportFmt === "pdf"; renderHeader(); }
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.menu) { S.menu = null; renderHeader(); } });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (S.menu) { S.menu = null; renderHeader(); }
+    if (S.outlineOpen) { S.outlineOpen = false; render(); }
+  });
   document.addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-act],[data-view],[data-filter]"); if (!b || b.disabled) return;
     if (b.dataset.view) { S.view = b.dataset.view; render(); return; }
@@ -60,7 +66,9 @@ export function bindEvents() {
       case "revert-do": simple(`clauses/${id}/revert`, { note: ($("reason-" + id)?.value || "").trim() }, "已恢復成改動前的樣子"); break;
       case "toggle-plain": S.plainView.has(id) ? S.plainView.delete(id) : S.plainView.add(id); render(); break;
       case "expand": S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id); render(); break;
-      case "goto": S.view = "contract"; render(); document.getElementById("c-" + id)?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
+      case "goto": ev.preventDefault(); S.view = "contract"; S.outlineOpen = false; render(); document.getElementById("c-" + id)?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
+      case "next-pending": S.view = "contract"; S.outlineOpen = false; render(); gotoNextPending(); break;
+      case "outline-toggle": S.outlineOpen = !S.outlineOpen; render(); break;
       case "see-log": S.view = "log"; S.filter = "all"; render(); break;
       case "mark-seen": S.lastSeen = Date.now(); render(); api("seen", {}).catch(() => {}); break;
       case "copy": copyMsg(); break;

@@ -10,7 +10,7 @@ export const S = {
   loaded: { c: false, r: false, h: false }, slow: false, noAccess: null, canWrite: true, isAdmin: false, busy: false,
   // 畫面
   view: "contract", filter: "todo", onlyChecked: false, plainView: new Set(), expanded: new Set(), menu: null,
-  editing: null, editBase: null, adding: null, confirm: null, renaming: false,
+  outlineOpen: false, editing: null, editBase: null, adding: null, confirm: null, renaming: false,
   peopleOpen: false, nameOpen: false, invited: null, forcePeople: false,
   // 匯入與匯出
   importing: false, importPreview: null, reimport: null, reimportAll: false, tplPick: false, tpls: null,

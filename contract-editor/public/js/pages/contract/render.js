@@ -8,10 +8,11 @@ import { importHtml, reimportHtml, tplPickHtml } from "./views/importing.js";
 import { logHtml } from "./views/log.js";
 import { renderPeople } from "./views/members.js";
 import { renderNews } from "./views/news.js";
+import { renderOutline, watchOutline } from "./views/outline.js";
 import { renderHeader } from "./views/toolbar.js";
 import { renderTurn } from "./views/turnbar.js";
 
-export function render() { renderTurn(); renderHeader(); renderPeople(); renderNews(); renderTabs(); renderMain(); }
+export function render() { renderTurn(); renderHeader(); renderPeople(); renderNews(); renderTabs(); renderMain(); renderOutline(); watchOutline(); }
 export function renderTabs() {
   const hide = S.importPreview || S.reimport || S.tplPick || !S.loaded.c || S.noAccess;
   $("tabs").hidden = !!hide;

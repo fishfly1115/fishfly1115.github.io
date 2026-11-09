@@ -14,6 +14,8 @@ export function startContract(cid) {
   ctx.KEY = store.get("ce:key:" + cid);
   ctx.ADMIN = store.get("ce:admin");
   ctx.api = contractApi({ cid, key: ctx.KEY, admin: ctx.ADMIN });
+  // 他方成員沒有管理密碼，首頁對他們沒有用途
+  if (!ctx.ADMIN) document.getElementById("brand").removeAttribute("href");
   S.onlyChecked = store.get("ce:only:" + cid) === "1";
 
   bindEvents();

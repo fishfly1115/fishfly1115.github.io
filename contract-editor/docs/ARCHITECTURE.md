@@ -46,7 +46,8 @@ contract-editor/
 │               ├── render.js    依狀態重繪整頁
 │               ├── events.js    事件委派：data-act 按鈕、表單、欄位點選
 │               ├── views/       純畫面（回傳 HTML 字串）
-│               │   ├── turnbar.js       頂端「目前由何方處理」
+│               │   ├── turnbar.js       頂端「目前由何方處理」與下一步
+│               │   ├── outline.js       左側條文目錄（審閱狀態、跳到下一處待審閱）
 │               │   ├── toolbar.js       工具列、匯出選單
 │               │   ├── members.js       成員與連結
 │               │   ├── news.js          他方新動態
@@ -94,6 +95,7 @@ core/         基礎工具
 ```
 
 - 契約頁採「單一狀態 → 整頁重繪」：`context.js` 的 `S` 是唯一狀態來源，`render()` 依 `S` 產生畫面；`views/` 都是回傳 HTML 字串的純函式。所有使用者輸入的內容在輸出前都經 `esc()` 或 `sanitize()` 處理。
+- 版面：頂端列（品牌、目前輪到哪一方、下一步按鈕）固定在上方；契約頁左側為條文目錄，窄螢幕時收合成「目錄」抽屜。
 - 事件統一在 `events.js` 以 `data-act` 委派，按鈕不各自綁定。
 - 第三方函式庫（mammoth、JSZip、docx、html2canvas、jsPDF）體積大，由 `core/loader.js` 在第一次需要時才載入；版本固定，且受 CSP 限制只允許 jsDelivr。
 

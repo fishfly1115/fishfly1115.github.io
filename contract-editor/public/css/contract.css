@@ -1,6 +1,6 @@
 /* 契約頁：條文紙張、修訂標示、可填寫欄位、編輯器、修訂紀錄、匯入比對、成員。 */
 /* Sheet & clauses */
-.sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow); margin-block: 18px 48px; padding: 8px clamp(16px, 5vw, 48px) 28px }
+.sheet { background: var(--sheet); border-radius: 6px; box-shadow: var(--shadow); margin-block: 14px 48px; padding: 8px clamp(16px, 5vw, 56px) 32px; max-width: 920px }
 .clause { padding-block: 20px; border-bottom: 1px dashed var(--line); display: grid; gap: 8px; position: relative; min-width: 0 }
 .clause[data-state="theirs"] { box-shadow: inset 3px 0 0 var(--turn-fg); padding-left: 14px; margin-left: -14px }
 .clause[data-state="mine"] { box-shadow: inset 3px 0 0 var(--accent); padding-left: 14px; margin-left: -14px }
@@ -28,7 +28,7 @@ ins.d { background: var(--ins-bg); color: var(--ins-fg); text-decoration: underl
 del.d { background: var(--del-bg); color: var(--del-fg); text-decoration: line-through }
 del.d img { opacity: .5; outline: 2px solid var(--del-fg) }
 ins.d img { outline: 2px solid var(--ins-fg) }
-.legend { margin-top: 12px; display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
+.legend { margin-top: 12px; max-width: 920px; display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
 
 /* Rich clause content (from Word or the editor) */
 .rich { font-family: var(--f-clause); font-size: 16px; line-height: 1.95; word-break: break-word; min-width: 0; overflow-x: auto }
@@ -97,3 +97,42 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 /* 匯入比對 */
 .stats { gap: 6px }
 .cmp-same { padding-block: 10px; opacity: .7 }
+
+/* 條文工具：滑鼠移到條文上才顯示，減少畫面雜訊（觸控裝置一律顯示） */
+@media (hover: hover) and (pointer: fine) {
+  .clause .tools { opacity: 0; transition: opacity .15s }
+  .clause:hover .tools, .clause:focus-within .tools { opacity: 1 }
+}
+.clause { scroll-margin-top: 84px }
+@media (prefers-reduced-motion: no-preference) {
+  .clause.flash { animation: flash 1.2s ease-out }
+  @keyframes flash { from { background: var(--turn-bg) } to { background: transparent } }
+}
+
+/* 條文目錄 */
+.outline { position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; padding: 20px 0 24px; overscroll-behavior: contain }
+.o-head { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .06em; padding: 0 10px 8px }
+.o-n { font-family: var(--f-data); letter-spacing: 0 }
+.o-head .btn { margin-left: auto }
+.o-todo { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: var(--turn-bg); color: var(--turn-fg); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-weight: 500; margin-bottom: 10px; text-align: left }
+.o-todo:hover { filter: brightness(.97) }
+.o-go { margin-left: auto; font-size: 12px; font-weight: 400 }
+.o-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px }
+.o-list > li { min-width: 0 }
+.o-list a { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 13px; line-height: 1.45 }
+.o-list a:hover { background: var(--sheet); color: var(--ink) }
+.o-list a[aria-current] { background: var(--sheet); color: var(--ink); font-weight: 500; box-shadow: inset 2px 0 0 var(--accent) }
+.o-list a[data-state="theirs"] { color: var(--ink) }
+.o-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0 }
+.o-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: transparent; display: inline-block }
+[data-state="theirs"] > .o-dot, .o-dot[data-state="theirs"] { background: var(--turn-fg) }
+[data-state="mine"] > .o-dot, .o-dot[data-state="mine"] { background: var(--accent) }
+.o-list a.gone .o-t { text-decoration: line-through }
+.o-legend { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 14px 10px 0 }
+.o-legend span { display: inline-flex; align-items: center; gap: 6px }
+@media (max-width: 960px) {
+  .layout.with-outline { display: block }
+  .outline:not(.open) { display: none }
+  .outline.open { position: fixed; inset: 0 auto 0 0; top: 0; width: min(320px, 86vw); max-height: none; z-index: 40; background: var(--paper); padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 0 0 100vmax rgba(10, 16, 26, .35) }
+  .only-narrow { display: inline-flex }
+}
