@@ -23,6 +23,13 @@ function saveBlob(filename, blob) {
 }
 const loadScript = (src) => new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("load " + src)); document.head.appendChild(s); });
 
+let TEMPLATES = null;
+async function loadTemplates() {
+  if (!TEMPLATES) { const r = await fetch("/templates.json"); if (!r.ok) throw new Error("範本載入失敗"); TEMPLATES = await r.json(); }
+  return TEMPLATES;
+}
+const tplPicker = (data, chosen) => `<div class="tplgrid" role="radiogroup" aria-label="範本">${data.templates.map((t) => `<label class="tpl"><input type="radio" name="tpl" value="${esc(t.id)}" ${chosen === t.id ? "checked" : ""}><span><strong>${esc(t.name)}</strong><span class="meta">${esc(t.description)}${t.clauses.length ? `（${t.clauses.length} 段）` : ""}</span></span></label>`).join("")}</div>`;
+
 const route = location.pathname.match(/^\/c\/([0-9a-f-]{36})\/?$/i);
 if (route) contractApp(route[1]); else adminApp();
 
@@ -31,7 +38,7 @@ if (route) contractApp(route[1]); else adminApp();
    ===================================================================== */
 function adminApp() {
   let pw = store.get("ce:admin") || "";
-  let list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "";
+  let tpls = null, list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "";
   const STATUS = { editing: ["修訂中", "plain"], review: ["審閱中", "theirs"], reviewed: ["待檢視", "mine"], final: ["已定稿", "ok"] };
   $("lede").textContent = "各契約案分別管理：新增契約後進入該案，即可匯入契約草案（Word）、邀請他方，並進行條文修訂與審閱。";
   $("ctitle").textContent = "契約案件";
@@ -88,6 +95,7 @@ function adminApp() {
     const shown = list.filter((c) => !q || c.title.toLowerCase().includes(q.toLowerCase()) || c.participants.some((p) => (p.name || p.label || "").includes(q)));
     main.innerHTML = `
       ${creating ? `<form class="panel" data-form="create"><h2>新增契約</h2><p>建立後將直接進入該契約，可匯入契約草案（Word）或逐條新增條文。</p>
+        <div class="field"><label>契約範本</label>${tpls ? tplPicker(tpls, "blank") : `<span class="meta">正在載入範本…</span>`}<p class="meta" id="tplnotice" hidden>${esc(tpls?.notice || "")}範本中【　】為待填欄位。</p></div>
         <div class="field"><label for="ntitle">契約名稱（案名）</label><input id="ntitle" maxlength="200" placeholder="例如：○○年度○○系統建置維護採購案契約書" required></div>
         <div class="row"><div class="field grow"><label for="ncase">案號（選填）</label><input id="ncase" maxlength="100" placeholder="例如：○○○-○○-○○○"></div>
         <div class="field grow"><label for="nrole">本方身分</label><select id="nrole" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--paper);font:inherit;color:inherit"><option>機關（甲方）</option><option>廠商（乙方）</option></select></div></div>
@@ -96,7 +104,15 @@ function adminApp() {
       <ul class="clist">${list.length
         ? (shown.length ? shown.map(card).join("") : `<li><span class="meta">找不到符合「${esc(q)}」的契約。</span></li>`)
         : `<li style="display:grid;justify-items:center;gap:10px;padding:32px 16px"><span class="meta">目前尚無契約案件。</span><button class="btn primary" data-act="new">＋ 新增第一件契約</button></li>`}</ul>`;
-    if (creating) $("ntitle").focus();
+    if (creating) {
+      $("ntitle").focus();
+      let lastAuto = "";
+      document.querySelectorAll("input[name=tpl]").forEach((r) => r.addEventListener("change", () => {
+        const t = tpls.templates.find((x) => x.id === r.value), el = $("ntitle");
+        if (!el.value.trim() || el.value === lastAuto) { el.value = t.title; lastAuto = t.title; }
+        $("tplnotice").hidden = !t.clauses.length;
+      }));
+    }
     if (renaming) $("rn-" + renaming)?.focus();
     $("q")?.addEventListener("input", (e) => { q = e.target.value; const pos = e.target.selectionStart; draw(); const el = $("q"); el.focus(); el.setSelectionRange(pos, pos); });
   }
@@ -107,10 +123,15 @@ function adminApp() {
     if (busy) return;
     if (f.dataset.form === "create") {
       const title = $("ntitle").value.trim(), caseNo = $("ncase").value.trim(), ownerLabel = $("nrole").value; if (!title) return;
+      const tpl = tpls?.templates.find((t) => t.id === document.querySelector("input[name=tpl]:checked")?.value);
       busy = true; draw();
       try {
         const r = await adminApi("contracts", "POST", { title, caseNo, ownerLabel });
         store.set("ce:key:" + r.id, r.key);
+        if (tpl && tpl.clauses.length) {
+          const res = await fetch(`/api/c/${r.id}/import`, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + r.key }, body: JSON.stringify({ title, source: `範本：${tpl.name}`, clauses: tpl.clauses }) });
+          if (!res.ok) toast("契約已建立，但範本套用失敗，請進入契約後按「套用範本」重試");
+        }
         location.href = "/c/" + r.id;
         return;
       } catch (err) { toast(err.message); }
@@ -126,6 +147,7 @@ function adminApp() {
   document.addEventListener("click", async (ev) => {
     const b = ev.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act;
+    if (a === "new" && !tpls) loadTemplates().then((d) => { tpls = d; if (creating) draw(); }).catch((e) => toast(e.message));
     if (a === "new") { creating = true; renaming = null; confirmDel = null; draw(); }
     if (a === "new-cancel") { creating = false; draw(); }
     if (a === "rename") { renaming = b.dataset.id; confirmDel = null; draw(); }
@@ -391,7 +413,7 @@ function renderTurn() {
 
 function renderHeader() {
   const back = ADMIN ? `<a href="/" style="color:var(--accent)">← 所有契約</a> · ` : "";
-  $("csource").innerHTML = back + esc([caseNo() && `案號：${caseNo()}`, S.contract?.source && `匯入自 ${S.contract.source}`].filter(Boolean).join(" · ") || "契約共同編輯");
+  $("csource").innerHTML = back + esc([caseNo() && `案號：${caseNo()}`, S.contract?.source && (S.contract.source.startsWith("範本：") ? `採用${S.contract.source}` : `匯入自 ${S.contract.source}`)].filter(Boolean).join(" · ") || "契約共同編輯");
   if (S.renaming && $("renameform")) { /* keep what the owner is typing across background refreshes */ }
   else if (S.renaming) {
     $("ctitle").innerHTML = `<form id="renameform" class="row"><input id="rtitle" maxlength="200" value="${esc(docTitle())}" aria-label="契約名稱" style="flex:1 1 240px;min-width:0;font:inherit;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--paper)"><input id="rcase" maxlength="100" value="${esc(caseNo())}" placeholder="案號" aria-label="案號" style="flex:0 1 180px;min-width:0;font-size:15px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--paper)"><button class="btn sm primary" type="submit">儲存</button><button class="btn sm" type="button" data-act="rename-cancel">取消</button></form>`;
@@ -405,7 +427,8 @@ function renderHeader() {
   }
   const el = $("exportbar");
   if (!S.loaded.c || S.noAccess) { el.innerHTML = ""; return; }
-  const imp = S.isAdmin && !S.importPreview ? `<button class="btn" data-act="import-pick" ${S.importing ? "disabled" : ""}>${S.importing ? "正在讀取 Word…" : "匯入 Word 契約"}</button>` : "";
+  const tplBtn = S.isAdmin && !S.importPreview ? `<button class="btn" data-act="tpl-open">套用範本</button>` : "";
+  const imp = S.isAdmin && !S.importPreview ? tplBtn + `<button class="btn" data-act="import-pick" ${S.importing ? "disabled" : ""}>${S.importing ? "正在讀取 Word…" : "匯入 Word 契約"}</button>` : "";
   const people = !S.importPreview ? `<button class="btn" data-act="people">${S.isAdmin ? "邀請他方／成員" : "成員與我的連結"}</button>` : "";
   if (S.importPreview || !S.clauses.length) { el.innerHTML = imp + people; return; }
   const open = S.revs.filter((r) => r.status === "pending").length;
@@ -489,7 +512,7 @@ function renderMain() {
   const key = S.editing || (S.adding ? "new" : null);
   const keep = key ? document.getElementById("editor-" + key) : null;
   if (S.noAccess) { main.innerHTML = `<div class="sheet"><p class="empty">請向契約契約建立者索取您的專屬連結。契約建立者可以在契約頁面按「邀請他方／成員」產生。</p></div>`; return; }
-  main.innerHTML = S.importPreview ? importHtml() : S.view === "contract" ? contractHtml() : logHtml();
+  main.innerHTML = S.tplPick ? tplPickHtml() : S.importPreview ? importHtml() : S.view === "contract" ? contractHtml() : logHtml();
   if (key) {
     const slot = document.getElementById("slot-" + key);
     if (slot) slot.replaceWith(keep || editorEl(key === "new" ? null : S.clauses.find((c) => c.id === key)));
@@ -499,7 +522,7 @@ function renderMain() {
 function contractHtml() {
   if (!S.loaded.c) return `<div class="sheet"><p class="empty">${S.slow ? "暫時讀不到條文，連線恢復後會自動顯示。" : "正在載入條文…"}</p></div>`;
   const vis = visible();
-  if (!vis.length && !S.adding) return `<div class="sheet"><p class="empty">還沒有契約條文。${S.isAdmin ? "按上方「匯入 Word 契約」選擇 .docx 檔開始，或" : "可以"}<button class="linkbtn" data-act="add" data-after="">直接新增第一條</button>。</p></div>`;
+  if (!vis.length && !S.adding) return `<div class="sheet"><p class="empty">還沒有契約條文。${S.isAdmin ? "可按上方「套用範本」、「匯入 Word 契約」開始，或" : "可以"}<button class="linkbtn" data-act="add" data-after="">直接新增第一條</button>。</p></div>`;
   const slotNew = `<section class="clause added" data-state="edit"><div id="slot-new"></div></section>`;
   let body = "";
   vis.forEach((c, i) => { body += clauseHtml(c, i, vis); if (S.adding?.afterId === c.id) body += slotNew; });
@@ -781,14 +804,23 @@ async function pickDocx(file) {
   } catch (e) { console.error(e); toast("讀不到這個 Word 檔，請確認它是未加密的 .docx 檔。"); }
   S.importing = false; render(); window.scrollTo({ top: 0 });
 }
+function tplPickHtml() {
+  if (!S.tpls) return `<div class="sheet"><p class="empty">正在載入範本…</p></div>`;
+  return `<div class="sheet"><div class="import-panel">
+    <h2 style="margin:0;font-size:18px">套用範本</h2>
+    <p class="lead">選擇範本後會先顯示預覽，確認後才會寫入。${esc(S.tpls.notice)}</p>
+    ${tplPicker({ templates: S.tpls.templates.filter((t) => t.clauses.length) }, S.tpls.templates.find((t) => t.clauses.length)?.id)}
+    <div class="actions"><button class="btn primary" data-act="tpl-preview">預覽範本</button><button class="btn" data-act="tpl-cancel">取消</button></div>
+  </div></div>`;
+}
 function importHtml() {
   const p = S.importPreview;
-  const how = { clause: `依「第○條」切成 ${p.clauses.length} 個條文。`, heading: `依 Word 標題切成 ${p.clauses.length} 個段落。`, none: "沒有找到「第○條」或 Word 標題，整份會先成為一個條文；匯入後可以用「＋」新增條文，把內容分開。" }[p.split];
+  const how = { template: `套用「${esc((p.source || "").replace(/^範本：/, ""))}」範本，共 ${p.clauses.length} 段。範本中【　】為待填欄位，套用後請逐條填寫或修訂。`, clause: `依「第○條」切成 ${p.clauses.length} 個條文。`, heading: `依 Word 標題切成 ${p.clauses.length} 個段落。`, none: "沒有找到「第○條」或 Word 標題，整份會先成為一個條文；匯入後可以用「＋」新增條文，把內容分開。" }[p.split];
   const replacing = S.clauses.length ? `<div class="dangerline">匯入後會取代目前的「${esc(docTitle())}」：現有條文和 ${S.revs.length} 筆修訂紀錄會刪除，進度回到第 1 輪。需要的話請先匯出 PDF 保存。</div>` : "";
   const imgNote = p.imgFail ? `<div class="warnline">有 ${p.imgFail} 張圖片格式或大小無法匯入（例如 Word 的 EMF 向量圖），請匯入後用「修訂」→「圖片」重新加入。</div>` : "";
   return `<div class="sheet"><div class="import-panel">
-    <h2 style="margin:0;font-size:18px">確認匯入：${esc(p.source)}</h2>
-    <p class="lead">${how} 粗體、斜體、底線、清單、表格與圖片會保留。</p>
+    <h2 style="margin:0;font-size:18px">${p.split === "template" ? `確認套用範本：${esc(p.source.replace(/^範本：/, ""))}` : `確認匯入：${esc(p.source)}`}</h2>
+    <p class="lead">${how}${p.split === "template" ? "" : " 粗體、斜體、底線、清單、表格與圖片會保留。"}</p>
     <div><label for="imp-title">契約名稱</label><input type="text" id="imp-title" maxlength="200" value="${esc(p.title)}"></div>
     <ol class="plist">${p.clauses.map((c) => `<li><span class="pt">${esc(c.title)}</span><span class="pp">${esc(textOf(c.html).slice(0, 80)) || "（無內文）"}</span></li>`).join("")}</ol>
     ${imgNote}${replacing}
@@ -957,6 +989,14 @@ document.addEventListener("click", (ev) => {
     case "export": if (S.revs.some((r) => r.status === "pending")) { S.exportAsk = true; render(); } else exportPdf(); break;
     case "export-go": exportPdf(); break;
     case "export-cancel": S.exportAsk = false; render(); break;
+    case "tpl-open": S.tplPick = true; render(); loadTemplates().then((d) => { S.tpls = d; render(); }).catch((e) => { toast(e.message); S.tplPick = false; render(); }); break;
+    case "tpl-cancel": S.tplPick = false; render(); break;
+    case "tpl-preview": {
+      const t = S.tpls.templates.find((x) => x.id === document.querySelector("input[name=tpl]:checked")?.value); if (!t) break;
+      S.tplPick = false;
+      S.importPreview = { title: docTitle() === "採購契約書" ? t.title : docTitle(), clauses: t.clauses, source: `範本：${t.name}`, split: "template", imgFail: 0 };
+      render(); window.scrollTo({ top: 0 }); break;
+    }
     case "import-pick": $("docx-input").value = ""; $("docx-input").click(); break;
     case "import-go": doImport(); break;
     case "import-cancel": S.importPreview = null; render(); break;
