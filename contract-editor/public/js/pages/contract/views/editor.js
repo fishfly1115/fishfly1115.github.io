@@ -4,6 +4,7 @@ import { plainToHtml, sanitize } from "../../../core/sanitize.js";
 import { uploadImage } from "../actions/editing.js";
 import { clauseHtmlOf } from "../state.js";
 import { fail } from "../sync.js";
+import { icon } from "../../../ui/icons.js";
 
 export function tableOp(ed, op) {
   const n = getSelection().anchorNode;
@@ -25,21 +26,21 @@ export function editorEl(c) {
     <input id="et-${key}" maxlength="200" value="${esc(c ? c.title : "")}" placeholder="例如：第十條　其他約定">
     <div>
       <div class="toolbar" role="toolbar" aria-label="格式">
-        <button type="button" data-cmd="bold" title="粗體"><b>B</b></button>
-        <button type="button" data-cmd="italic" title="斜體"><i>I</i></button>
-        <button type="button" data-cmd="underline" title="底線"><u>U</u></button>
-        <button type="button" data-cmd="strikeThrough" title="刪除線"><s>S</s></button>
-        <button type="button" data-cmd="insertOrderedList" title="編號清單">1.</button>
-        <button type="button" data-cmd="insertUnorderedList" title="項目清單">•</button>
-        <button type="button" data-cmd="indent" title="增加縮排">→</button>
-        <button type="button" data-cmd="outdent" title="減少縮排">←</button>
-        <button type="button" data-cmd="table" title="插入表格">表格</button>
-        <button type="button" data-cmd="row+" title="在下方插入列">＋列</button>
-        <button type="button" data-cmd="row-" title="刪除此列">－列</button>
-        <button type="button" data-cmd="col+" title="在右側插入欄">＋欄</button>
-        <button type="button" data-cmd="col-" title="刪除此欄">－欄</button>
-        <button type="button" data-cmd="image" title="插入圖片">圖片</button>
-        <button type="button" data-cmd="removeFormat" title="清除格式">清除格式</button>
+        <button type="button" data-cmd="bold" title="粗體" aria-label="粗體">${icon("bold")}</button>
+        <button type="button" data-cmd="italic" title="斜體" aria-label="斜體">${icon("italic")}</button>
+        <button type="button" data-cmd="underline" title="底線" aria-label="底線">${icon("underline")}</button>
+        <button type="button" data-cmd="strikeThrough" title="刪除線" aria-label="刪除線">${icon("strike")}</button>
+        <button type="button" data-cmd="insertOrderedList" title="編號清單" aria-label="編號清單">${icon("listNumbered")}</button>
+        <button type="button" data-cmd="insertUnorderedList" title="項目清單" aria-label="項目清單">${icon("listBulleted")}</button>
+        <button type="button" data-cmd="indent" title="增加縮排" aria-label="增加縮排">${icon("indent")}</button>
+        <button type="button" data-cmd="outdent" title="減少縮排" aria-label="減少縮排">${icon("outdent")}</button>
+        <button type="button" data-cmd="table" title="插入表格">${icon("table", { size: 18 })}表格</button>
+        <button type="button" data-cmd="row+" title="在下方插入列">${icon("add", { size: 16 })}列</button>
+        <button type="button" data-cmd="row-" title="刪除此列">${icon("remove", { size: 16 })}列</button>
+        <button type="button" data-cmd="col+" title="在右側插入欄">${icon("add", { size: 16 })}欄</button>
+        <button type="button" data-cmd="col-" title="刪除此欄">${icon("remove", { size: 16 })}欄</button>
+        <button type="button" data-cmd="image" title="插入圖片">${icon("image", { size: 18 })}圖片</button>
+        <button type="button" data-cmd="removeFormat" title="清除格式" aria-label="清除格式">${icon("clearFormat")}</button>
       </div>
       <div class="editable rich" id="eb-${key}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="條文內容">${c ? clauseHtmlOf(c) : "<p><br></p>"}</div>
     </div>

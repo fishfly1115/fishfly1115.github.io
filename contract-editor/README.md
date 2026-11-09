@@ -65,6 +65,7 @@ test/      unit/ 單元測試、e2e/ 完整流程測試
 ## 主要功能
 
 - **審閱工作區**：上方流程進度列顯示目前步驟（雙方修訂 → 他方審閱 → 確認結果 → 定稿）與下一步；左側條文目錄標示待審閱條文；右側審閱面板逐條列出「原文 → 新文」，直接接受或退回。手機版以底部審閱列操作。
+- **深色／淺色**：右上角圖示按鈕切換，選擇會記住；未選擇時跟隨裝置設定。
 - **首頁待辦**：統計卡（待您處理／等待他方／修訂中／已定稿）同時是篩選，表格標示目前輪到哪一方。
 
 - **範本**：新增契約時可選空白契約、資助研究計畫契約（中央研究院）、勞務採購契約、財物採購契約；範本存放於 `public/data/templates.json`。
@@ -98,4 +99,4 @@ npm run test:e2e     # 以瀏覽器走完整流程（需 Playwright 與 Chromium
 npm run build:template -- 契約.docx --id my-contract --name "○○採購契約" --description "範本說明"
 ```
 
-PDF 內嵌字型為 Noto Sans TC（SIL Open Font License 1.1）。
+PDF 內嵌字型為 Noto Sans TC（SIL Open Font License 1.1）。介面圖示取自 MUI Material Icons（@mui/icons-material，MIT License），統一由 `public/js/ui/icons.js` 提供。

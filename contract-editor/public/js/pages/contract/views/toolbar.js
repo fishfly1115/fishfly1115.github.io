@@ -5,8 +5,9 @@ import { S } from "../context.js";
 import { render } from "../render.js";
 import { canEditDoc, caseNo, docTitle, visible } from "../state.js";
 import { act } from "../sync.js";
+import { icon } from "../../../ui/icons.js";
 
-export const menuBtn = (id, label, primary) => `<div class="menu-wrap"><button class="btn ${primary ? "primary" : ""}" data-act="menu" data-id="${id}" aria-haspopup="menu" aria-expanded="${S.menu === id}">${label} <span aria-hidden="true">▾</span></button>${S.menu === id ? menuHtml(id) : ""}</div>`;
+export const menuBtn = (id, label, primary) => `<div class="menu-wrap"><button class="btn ${primary ? "primary" : ""}" data-act="menu" data-id="${id}" aria-haspopup="menu" aria-expanded="${S.menu === id}">${label}${icon("dropDown", { size: 18 })}</button>${S.menu === id ? menuHtml(id) : ""}</div>`;
 export function menuHtml(id) {
   const items = id === "import" ? [
     canEditDoc() && S.clauses.length && ["reimport-pick", "匯入修訂版 Word", "以匯出的 Word 修訂後匯回，逐條比對差異"],
@@ -29,17 +30,17 @@ export function renderHeader() {
       try { await act("rename", { title, caseNo: $("rcase").value.trim() }, "已更新契約名稱"); S.renaming = false; render(); } catch {}
     });
   } else {
-    $("ctitle").innerHTML = (S.loaded.c ? esc(docTitle()) : `<span class="skel" style="width:60%;height:30px"></span>`) + (S.isAdmin && S.loaded.c ? ` <button class="btn icon ghost" data-act="rename-open" aria-label="編輯名稱與案號" title="編輯名稱與案號">✎</button>` : "");
+    $("ctitle").innerHTML = (S.loaded.c ? esc(docTitle()) : `<span class="skel" style="width:60%;height:30px"></span>`) + (S.isAdmin && S.loaded.c ? ` <button class="btn icon ghost" data-act="rename-open" aria-label="編輯名稱與案號" title="編輯名稱與案號">${icon("edit", { size: 18 })}</button>` : "");
   }
   const el = $("exportbar");
   if (!S.loaded.c || S.noAccess || S.importPreview || S.reimport || S.tplPick) { el.innerHTML = ""; return; }
   const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
   const toggle = hasBoxes ? `<div class="seg" role="group" aria-label="選項顯示方式"><button data-act="only-checked" data-v="0" aria-pressed="${!S.onlyChecked}">全部選項</button><button data-act="only-checked" data-v="1" aria-pressed="${S.onlyChecked}">僅已勾選</button></div>` : "";
-  const imp = (S.isAdmin || (canEditDoc() && S.clauses.length)) ? menuBtn("import", "匯入") : "";
-  const outlineBtn = S.view === "contract" && S.clauses.length > 1 ? `<button class="btn only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}">目錄</button>` : "";
+  const imp = (S.isAdmin || (canEditDoc() && S.clauses.length)) ? menuBtn("import", `${icon("upload", { size: 18 })}匯入`) : "";
+  const outlineBtn = S.view === "contract" && S.clauses.length > 1 ? `<button class="btn only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}">${icon("toc", { size: 18 })}目錄</button>` : "";
   const legend = S.view === "contract" && S.clauses.length ? `<span class="legend"><span><del class="d">刪除線</del> 刪除的原文</span><span><ins class="d">底線</ins> 新增的文字</span></span>` : "";
   const vis = visible();
-  const addBtn = S.view === "contract" && canEditDoc() && vis.length && !S.adding ? `<button class="btn ghost" data-act="add" data-after="${vis[vis.length - 1].id}">＋ 新增條文</button>` : "";
+  const addBtn = S.view === "contract" && canEditDoc() && vis.length && !S.adding ? `<button class="btn ghost" data-act="add" data-after="${vis[vis.length - 1].id}">${icon("add", { size: 18 })}新增條文</button>` : "";
   el.innerHTML = `${outlineBtn}${toggle}${legend}<div class="grow"></div>${imp}${addBtn}`;
   if (S.exportOpen) el.insertAdjacentHTML("beforeend", exportPanelHtml());
 }
@@ -48,7 +49,7 @@ export function exportPanelHtml() {
   const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
   const pdf = S.exportFmt === "pdf";
   return `<section class="panel export" aria-label="匯出">
-    <div class="row"><h2>匯出</h2><div class="grow"></div><button class="btn icon ghost" data-act="export-close" aria-label="關閉">✕</button></div>
+    <div class="row"><h2>匯出</h2><div class="grow"></div><button class="btn icon ghost" data-act="export-close" aria-label="關閉">${icon("close")}</button></div>
     <div class="tplgrid">
       <label class="tpl"><input type="radio" name="efmt" value="pdf" ${pdf ? "checked" : ""}><span><strong>PDF 定稿本</strong><span class="meta">A4 直式，含案號、頁碼；未定稿時加註「草案」浮水印</span></span></label>
       <label class="tpl"><input type="radio" name="efmt" value="docx" ${pdf ? "" : "checked"}><span><strong>Word（可編輯）</strong><span class="meta">可在 Word 整份修訂後，以「匯入 → 匯入修訂版 Word」送回逐條比對</span></span></label>

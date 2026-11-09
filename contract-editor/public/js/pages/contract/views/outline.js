@@ -8,6 +8,7 @@
 import { $, esc } from "../../../core/dom.js";
 import { S } from "../context.js";
 import { SIDE, mySide, pendingOf, sameSide, visible } from "../state.js";
+import { icon } from "../../../ui/icons.js";
 
 let currentId = null;
 const showOutline = () => S.loaded.c && !S.noAccess && S.view === "contract" && !S.importPreview && !S.reimport && !S.tplPick && visible().length > 1;
@@ -35,8 +36,8 @@ export function renderOutline() {
       <span class="o-dot" aria-hidden="true"></span><span class="o-t">${esc(c.title)}</span>${tag ? `<span class="sr">${tag}</span>` : ""}</a></li>`;
   }).join("");
   el.innerHTML = `<div class="o-head"><span>條文目錄</span><span class="o-n">${vis.length} 條</span>
-      <button class="btn icon ghost only-narrow" data-act="outline-toggle" aria-label="關閉目錄">✕</button></div>
-    ${todo ? `<button class="o-todo" data-act="next-pending"><span class="o-dot" data-state="theirs" aria-hidden="true"></span>待您審閱 ${todo} 條<span class="o-go">下一處 ↓</span></button>` : ""}
+      <button class="btn icon ghost only-narrow" data-act="outline-toggle" aria-label="關閉目錄">${icon("close")}</button></div>
+    ${todo ? `<button class="o-todo" data-act="next-pending"><span class="o-dot" data-state="theirs" aria-hidden="true"></span>待您審閱 ${todo} 條<span class="o-go">下一處${icon("nextDown", { size: 16 })}</span></button>` : ""}
     <ol class="o-list">${items}</ol>
     <div class="o-legend"><span><span class="o-dot" data-state="theirs"></span>待您審閱</span><span><span class="o-dot" data-state="mine"></span>待${other}審閱</span></div>`;
 }

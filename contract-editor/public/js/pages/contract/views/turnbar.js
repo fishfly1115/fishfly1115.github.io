@@ -8,6 +8,7 @@ import { $, esc } from "../../../core/dom.js";
 import { fmt } from "../../../core/format.js";
 import { S, ctx } from "../context.js";
 import { SIDE, caseNo, docTitle, mySide, otherSide, pendingForMe, roundNo, sameSide, sideOfId, status, whoFull } from "../state.js";
+import { icon } from "../../../ui/icons.js";
 
 export function renderTurn() {
   renderCrumb();
@@ -29,8 +30,8 @@ function renderTopActions() {
   const avatars = live.slice(0, 4).map((p) => `<span class="avatar" data-side="${p.side === mySide() ? "mine" : "other"}" title="${esc(whoFull(p.id))}">${esc((p.name || p.label || SIDE[p.side] || "?").trim().slice(0, 1))}</span>`).join("")
     + (live.length > 4 ? `<span class="avatar more">+${live.length - 4}</span>` : "");
   el.innerHTML = `<div class="avatars" aria-label="成員 ${live.length} 人">${avatars}</div>
-    <button class="btn" data-act="people" aria-pressed="${S.panelTab === "people" || S.peopleOpen}">成員與連結</button>
-    ${S.clauses.length ? `<button class="btn" data-act="export-open" ${S.exporting ? "disabled" : ""}>${S.exporting ? "匯出中…" : "匯出"}</button>` : ""}`;
+    <button class="btn" data-act="people" aria-label="成員與連結" aria-pressed="${S.panelTab === "people" || S.peopleOpen}">${icon("group", { size: 18 })}<span class="btn-t">成員與連結</span></button>
+    ${S.clauses.length ? `<button class="btn" data-act="export-open" aria-label="匯出" ${S.exporting ? "disabled" : ""}>${icon("download", { size: 18 })}<span class="btn-t">${S.exporting ? "匯出中…" : "匯出"}</span></button>` : ""}`;
 }
 
 // 依交接紀錄推算四個步驟的名稱與目前步驟
@@ -82,9 +83,9 @@ function renderFlow() {
   const { now, list } = steps();
   const stepsHtml = list.map((label, i) => {
     const state = st === "final" || i < now ? "done" : i === now ? "now" : "next";
-    return `${i ? `<span class="step-line" aria-hidden="true"></span>` : ""}<li class="step" data-state="${state}" ${state === "now" ? `aria-current="step"` : ""}><span class="step-n">${state === "done" ? "✓" : i + 1}</span><span class="step-t">${label}</span></li>`;
+    return `${i ? `<span class="step-line" aria-hidden="true"></span>` : ""}<li class="step" data-state="${state}" ${state === "now" ? `aria-current="step"` : ""}><span class="step-n">${state === "done" ? icon("check", { size: 16 }) : i + 1}</span><span class="step-t">${label}</span></li>`;
   }).join("");
-  const jump = todo && st !== "final" ? `<button class="btn" data-act="next-pending">下一處待審閱 ↓</button>` : "";
+  const jump = todo && st !== "final" ? `<button class="btn" data-act="next-pending">${icon("nextDown", { size: 18 })}下一處待審閱</button>` : "";
   el.innerHTML = `<ol class="steps" aria-label="流程進度（第 ${n} 輪）">${stepsHtml}</ol>
     <div class="mprogress" aria-hidden="true"><span>第 ${now + 1} 步／共 4 步</span><strong>${list[now]}</strong><span class="bars">${list.map((_, i) => `<i data-state="${st === "final" || i < now ? "done" : i === now ? "now" : "next"}"></i>`).join("")}</span></div>
     <div class="grow"></div>
