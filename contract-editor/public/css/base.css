@@ -199,5 +199,16 @@ select.inp { appearance: auto }
 .fchip { display: inline-flex; gap: 4px; align-items: center; background: var(--turn-bg); color: var(--turn-fg); border-radius: 999px; padding: 3px 4px 3px 12px; font-size: 13px; font-weight: 500 }
 .fchip button { border: 0; background: none; color: inherit; width: 24px; height: 24px; border-radius: 50%; font-size: 11px }
 .ctable tr.my-turn td { background: color-mix(in srgb, var(--turn-bg) 45%, var(--sheet)) }
+@media (max-width: 760px) {
+  /* 手機上每列是一張卡片：底色加在整列，不是各欄位 */
+  .ctable tbody tr:not(.editing):hover td, .ctable tr.my-turn td { background: none }
+  .ctable tr.my-turn { background: color-mix(in srgb, var(--turn-bg) 45%, var(--sheet)) }
+  .ctable tbody tr:last-child { border-bottom: 0 }
+  .ctable tbody tr:first-child { border-radius: 10px 10px 0 0 }
+  .ctable tbody tr:last-child { border-radius: 0 0 10px 10px }
+  .ctable tbody tr:only-child { border-radius: 10px }
+}
+.ctable tbody tr:last-child td:first-child { border-bottom-left-radius: 10px }
+.ctable tbody tr:last-child td:last-child { border-bottom-right-radius: 10px }
 .turn-me { color: var(--turn-fg) }
 @media (max-width: 760px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px } .stat-n { font-size: 24px } }
