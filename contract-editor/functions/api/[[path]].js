@@ -15,6 +15,8 @@ let ready = false;
 async function init(db) {
   if (ready) return;
   await db.batch(SCHEMA.map((s) => db.prepare(s)));
+  // Added after first release: procurement case number (案號).
+  try { await db.prepare("ALTER TABLE contracts ADD COLUMN case_no TEXT").run(); } catch { /* already there */ }
   ready = true;
 }
 
@@ -69,7 +71,7 @@ async function participant(request, env, cid) {
     const p = await env.DB.prepare("SELECT * FROM participants WHERE contract_id = ? AND role = 'owner' ORDER BY created_at LIMIT 1").bind(cid).first();
     if (p) return p;
   }
-  throw new HttpError(401, "unauthorized", "這個連結無效或已被停用，請向合約擁有者索取新的連結");
+  throw new HttpError(401, "unauthorized", "這個連結無效或已被停用，請向契約建立者索取新的連結");
 }
 
 /* ---------- shapes ---------- */
@@ -79,7 +81,7 @@ const partOut = (p) => ({ id: p.id, role: p.role, label: p.label, name: p.name, 
 
 async function loadContract(env, cid) {
   const c = await env.DB.prepare("SELECT * FROM contracts WHERE id = ?").bind(cid).first();
-  if (!c) throw new HttpError(404, "not_found", "找不到這份合約");
+  if (!c) throw new HttpError(404, "not_found", "查無此契約");
   return { ...c, handoff: JSON.parse(c.handoff) };
 }
 async function loadClause(env, cid, clauseId) {
@@ -118,7 +120,7 @@ async function adminRoutes(request, env, seg) {
   const m = request.method;
   if (seg[1] === "contracts" && seg.length === 2 && m === "GET") {
     const { results: cs } = await env.DB.prepare(
-      `SELECT c.id, c.title, c.source, c.created_at, c.handoff,
+      `SELECT c.id, c.title, c.case_no, c.source, c.created_at, c.handoff,
         (SELECT COUNT(*) FROM clauses WHERE contract_id = c.id AND removed = 0) AS clause_count,
         (SELECT COUNT(*) FROM revisions WHERE contract_id = c.id AND status = 'pending') AS pending_count,
         (SELECT MAX(at) FROM revisions WHERE contract_id = c.id) AS last_rev,
@@ -128,7 +130,7 @@ async function adminRoutes(request, env, seg) {
     return json({ contracts: cs.map((c) => {
       const handoff = JSON.parse(c.handoff);
       return {
-        id: c.id, title: c.title, source: c.source, createdAt: c.created_at, handoff,
+        id: c.id, title: c.title, caseNo: c.case_no, source: c.source, createdAt: c.created_at, handoff,
         clauseCount: c.clause_count, pendingCount: c.pending_count,
         updatedAt: Math.max(c.created_at, c.last_rev || 0, c.last_clause || 0, handoff.at || 0),
         participants: ps.filter((p) => p.contract_id === c.id).map((p) => ({ role: p.role, label: p.label, name: p.name }))
@@ -137,19 +139,22 @@ async function adminRoutes(request, env, seg) {
   }
   if (seg[1] === "contracts" && seg.length === 4 && seg[3] === "rename" && m === "POST") {
     const b = await body(request);
-    const title = str(b.title ?? "", MAX_TITLE, "合約名稱").trim();
-    if (!title) throw new HttpError(400, "bad_request", "請輸入合約名稱");
-    const r = await env.DB.prepare("UPDATE contracts SET title = ?, version = version + 1 WHERE id = ?").bind(title, seg[2]).run();
-    if (!r.meta.changes) throw new HttpError(404, "not_found", "找不到這份合約");
+    const title = str(b.title ?? "", MAX_TITLE, "契約名稱").trim();
+    if (!title) throw new HttpError(400, "bad_request", "請輸入契約名稱");
+    const caseNo = str(b.caseNo ?? "", 100, "案號").trim();
+    const r = await env.DB.prepare("UPDATE contracts SET title = ?, case_no = ?, version = version + 1 WHERE id = ?").bind(title, caseNo, seg[2]).run();
+    if (!r.meta.changes) throw new HttpError(404, "not_found", "查無此契約");
     return json({ ok: true });
   }
   if (seg[1] === "contracts" && seg.length === 2 && m === "POST") {
     const b = await body(request);
-    const title = str(b.title || "合作契約書", MAX_TITLE, "合約名稱").trim() || "合作契約書";
+    const title = str(b.title || "採購契約書", MAX_TITLE, "契約名稱").trim() || "採購契約書";
+    const caseNo = str(b.caseNo ?? "", 100, "案號").trim();
+    const ownerLabel = str(b.ownerLabel ?? "", 60, "本方身分").trim() || "機關（甲方）";
     const id = uid(), pid = uid(), key = newKey(), t = now();
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO contracts (id, title, created_at, version, handoff) VALUES (?, ?, ?, 1, ?)").bind(id, title, t, JSON.stringify({ status: "editing", round: 1, by: null, at: t })),
-      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, created_at) VALUES (?, ?, ?, 'owner', '擁有者', ?)").bind(pid, id, await sha256(key), t)
+      env.DB.prepare("INSERT INTO contracts (id, title, case_no, created_at, version, handoff) VALUES (?, ?, ?, ?, 1, ?)").bind(id, title, caseNo, t, JSON.stringify({ status: "editing", round: 1, by: null, at: t })),
+      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, created_at) VALUES (?, ?, ?, 'owner', ?, ?)").bind(pid, id, await sha256(key), ownerLabel, t)
     ]);
     return json({ id, key });
   }
@@ -175,7 +180,7 @@ async function contractRoutes(request, env, seg) {
   const me = await participant(request, env, cid);
   const contract = await loadContract(env, cid);
   const owner = me.role === "owner";
-  const needOwner = () => { if (!owner) throw new HttpError(403, "forbidden", "只有合約擁有者可以這樣做"); };
+  const needOwner = () => { if (!owner) throw new HttpError(403, "forbidden", "僅契約建立者可執行此操作"); };
 
   if (m === "GET" && action === "version") return json({ version: contract.version });
   if (m === "GET" && action === "state") {
@@ -186,7 +191,7 @@ async function contractRoutes(request, env, seg) {
     ]);
     return json({
       me: { ...partOut(me) },
-      contract: { id: cid, title: contract.title, source: contract.source, version: contract.version, handoff: contract.handoff },
+      contract: { id: cid, title: contract.title, caseNo: contract.case_no || "", source: contract.source, version: contract.version, handoff: contract.handoff },
       participants: ps.map(partOut), clauses: cs.map(clauseOut), revisions: rs.map(revOut)
     });
   }
@@ -214,9 +219,10 @@ async function contractRoutes(request, env, seg) {
   }
   if (action === "rename") {
     needOwner();
-    const title = str(b.title ?? "", MAX_TITLE, "合約名稱").trim();
-    if (!title) throw new HttpError(400, "bad_request", "請輸入合約名稱");
-    await env.DB.prepare("UPDATE contracts SET title = ?, version = version + 1 WHERE id = ?").bind(title, cid).run();
+    const title = str(b.title ?? "", MAX_TITLE, "契約名稱").trim();
+    if (!title) throw new HttpError(400, "bad_request", "請輸入契約名稱");
+    const caseNo = str(b.caseNo ?? contract.case_no ?? "", 100, "案號").trim();
+    await env.DB.prepare("UPDATE contracts SET title = ?, case_no = ?, version = version + 1 WHERE id = ?").bind(title, caseNo, cid).run();
     return json({ ok: true });
   }
   if (action === "seen") {
@@ -225,7 +231,7 @@ async function contractRoutes(request, env, seg) {
   }
   if (action === "invite") {
     needOwner();
-    const label = str(b.label ?? "", 60, "身分說明").trim() || "對方";
+    const label = str(b.label ?? "", 60, "身分說明").trim() || "廠商（乙方）";
     const key = newKey();
     await env.DB.batch([
       env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, created_at) VALUES (?, ?, ?, 'party', ?, ?)").bind(uid(), cid, await sha256(key), label, now()),
@@ -241,9 +247,9 @@ async function contractRoutes(request, env, seg) {
   }
   if (action === "import") {
     needOwner();
-    const title = str(b.title || contract.title, MAX_TITLE, "合約名稱").trim() || contract.title;
+    const title = str(b.title || contract.title, MAX_TITLE, "契約名稱").trim() || contract.title;
     const source = str(b.source || "", 255, "檔名");
-    if (!Array.isArray(b.clauses) || !b.clauses.length || b.clauses.length > 2000) throw new HttpError(400, "bad_request", "沒有可匯入的條款");
+    if (!Array.isArray(b.clauses) || !b.clauses.length || b.clauses.length > 2000) throw new HttpError(400, "bad_request", "沒有可匯入的條文");
     const t = now();
     const stmts = [
       env.DB.prepare("DELETE FROM revisions WHERE contract_id = ?").bind(cid),
@@ -287,7 +293,7 @@ async function contractRoutes(request, env, seg) {
     if (op === "edit") {
       const title = str(b.title || c.title, MAX_TITLE, "條款標題").trim() || c.title;
       const html = str(b.html ?? "", MAX_HTML, "條款內容");
-      if (b.baseRev !== c.rev) return json({ code: "conflict", message: "對方在你編輯時也改動了這一條", clause: clauseOut(c) }, 409);
+      if (b.baseRev !== c.rev) return json({ code: "conflict", message: "他方於您編輯期間已修訂本條", clause: clauseOut(c) }, 409);
       if (title === c.title && html === c.html) return json({ ok: true, unchanged: true });
       const res = await env.DB.batch([
         env.DB.prepare("UPDATE clauses SET title = ?, html = ?, rev = rev + 1, updated_by = ?, updated_at = ? WHERE id = ? AND rev = ?").bind(title, html, me.id, stamp, clauseId, c.rev),
