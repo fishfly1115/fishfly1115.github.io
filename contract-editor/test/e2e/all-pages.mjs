@@ -33,9 +33,12 @@ async function main() {
       await o.waitForSelector(".ctable");
     }
     await o.click("[data-act=new]");
+    await o.reload();
+    await o.waitForSelector("[data-form=create]");
+    assert.match(o.url(), /\/new$/);
     await o.goBack();
     await o.waitForSelector(".ctable");
-    step("新增契約為獨立頁面，上一頁回到列表");
+    step("新增契約為獨立頁面（可重新整理），上一頁回到列表");
     await o.locator("[data-act=row-menu]").first().click();
     await o.click("[data-act=rename]");
     await o.fill("[id^=rn-]", "甲案（改）");

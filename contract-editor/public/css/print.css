@@ -8,7 +8,8 @@
 #pdf-stage .ph .seal { position: absolute; right: 8px; top: -4px; border-color: #b3261e; color: #b3261e }
 #pdf-stage h3 { margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: .03em }
 #pdf-stage .rich { font-size: 16.5px; line-height: 2; overflow: visible }
-#pdf-stage .rich td, #pdf-stage .rich th { border-color: #999 }
+#pdf-stage .rich td, #pdf-stage .rich th { border-color: #666 }
+#pdf-stage .rich tr:first-child > td, #pdf-stage .rich th { background: #f2f2f2 }
 
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--sheet); padding: 10px 16px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100vw - 32px); z-index: 20 }
 @media (prefers-reduced-motion: no-preference) { .toast { animation: rise .25s ease-out } @keyframes rise { from { transform: translate(-50%, 8px); opacity: .4 } } }

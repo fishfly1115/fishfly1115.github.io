@@ -95,7 +95,6 @@ a.btn { text-decoration: none }
 .tpl strong { font-size: 14px }
 .tpl .meta { font-family: var(--f-body); line-height: 1.5 }
 
-.fx-cell:hover { color: var(--accent) }
 .pop { position: absolute; z-index: 30; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 12px; display: grid; gap: 8px; width: min(320px, calc(100vw - 16px)) }
 .pop label { font-size: 13px; color: var(--muted) }
 .inp { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: var(--paper); font: inherit; color: inherit }
