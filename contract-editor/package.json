@@ -7,7 +7,7 @@
     "dev": "wrangler pages dev public --d1 DB=local-db --r2 IMAGES=local-img --binding ADMIN_PASSWORD=dev-password",
     "lint": "eslint .",
     "test": "node --test test/unit/*.test.mjs",
-    "test:e2e": "node test/e2e/contract-flow.mjs",
+    "test:e2e": "node test/e2e/contract-flow.mjs && node test/e2e/all-pages.mjs",
     "build:template": "node scripts/build-template.mjs"
   },
   "devDependencies": {

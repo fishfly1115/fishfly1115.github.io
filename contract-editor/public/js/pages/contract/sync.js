@@ -1,4 +1,4 @@
-// 與伺服器同步：載入狀態、每 4 秒檢查版本、他方變更時提示。
+// 與伺服器溝通：載入狀態、每 4 秒檢查版本、他方變更時提示，以及送出操作（act／simple）與上傳圖片。
 import { toast } from "../../core/dom.js";
 import { S, api } from "./context.js";
 import { render } from "./render.js";
@@ -56,4 +56,17 @@ export function fail(e) {
   if (e.status === 401) { S.noAccess = e.message; render(); }
   else if (e.status === 409) toast(e.message);
   else toast(e.message || "儲存失敗，請檢查網路後再試一次。");
+}
+
+// 送出一個操作並重新整理畫面；處理中時忽略重複點擊（審閱、交接、移動條文等單純操作用）
+export async function simple(path, body, msg) {
+  if (S.busy) return;
+  S.busy = true;
+  try { await act(path, body, msg); } catch { /* fail() 已提示 */ }
+  S.busy = false; S.confirm = null; render();
+}
+
+// 上傳圖片到 R2，回傳圖片網址（編輯器貼上圖片、匯入 Word 時使用）
+export async function uploadImage(blob) {
+  return (await api("images", blob)).url;
 }

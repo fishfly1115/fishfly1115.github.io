@@ -40,36 +40,39 @@ contract-editor/
 │       │   ├── theme-toggle.js  右上角深色／淺色切換
 │       │   └── template-picker.js 範本選擇元件
 │       ├── theme-init.js        在畫面繪製前套用已選的主題（避免閃爍）
-│       └── pages/
-│           ├── home.js          首頁：登入、契約列表、新增／改名／刪除
-│           └── contract/        契約頁
-│               ├── index.js     啟動：讀連結金鑰、綁定事件、開始輪詢
-│               ├── router.js    分頁與網址（/c/<id>/review 等），瀏覽器上一頁可用
-│               ├── context.js   頁面共用狀態 S 與 api()
-│               ├── state.js     由狀態推導的選擇器（目前輪到誰、待審閱、可見條文…）
-│               ├── sync.js      取得最新狀態、輪詢、執行動作後更新
-│               ├── render.js    依狀態重繪整頁
-│               ├── events.js    事件委派：data-act 按鈕、表單、欄位點選
-│               ├── views/       純畫面（回傳 HTML 字串）
-│               │   ├── turnbar.js       頂端列（位置、成員頭像）
-│               │   ├── nav.js           分頁導覽列
-│               │   ├── overview.js      總覽頁：四個步驟、輪到誰、唯一的下一步按鈕
-│               │   ├── review-page.js   審閱頁：一次一處修訂（改了什麼、條文全文、接受／退回）
-│               │   ├── outline.js       左側條文目錄（審閱狀態、跳到下一處待審閱）
-│               │   ├── toolbar.js       各頁標題與說明、契約內容工具列、匯出頁、匯入頁
-│               │   ├── members.js       成員與連結頁
-│               │   ├── news.js          自上次查看後的更新（總覽頁）
-│               │   ├── clauses.js       條文與修訂審閱
-│               │   ├── editor.js        條文編輯器
-│               │   ├── field-popover.js 日期／空格填寫小視窗
-│               │   ├── log.js           修訂紀錄
-│               │   └── importing.js     匯入預覽、匯回比對
-│               └── actions/     使用者操作（呼叫 API、改狀態）
-│                   ├── fields.js     直接填寫（連續填寫合併為一筆修訂）
-│                   ├── navigate.js   契約內容頁定位條文
-│                   ├── editing.js    編輯、儲存、圖片上傳
-│                   ├── importing.js  匯入 Word、匯回修訂版
-│                   └── exporting.js  匯出 PDF／Word
+│       └── pages/               畫面；每個畫面一個資料夾，裡面放它自己的畫面與操作
+│           ├── home/            首頁（/ 與 /new）
+│           │   ├── index.js         選擇畫面、繪製、把按鈕與表單交給對應畫面
+│           │   ├── state.js         首頁狀態 H、管理 API
+│           │   ├── login.js         登入
+│           │   ├── list.js          契約列表：統計卡篩選、搜尋、改名、刪除
+│           │   └── new-contract.js  新增契約：選範本、填資料、建立
+│           └── contract/        契約頁（/c/<id>/…）
+│               ├── index.js         啟動：讀連結金鑰、綁定事件與網址、開始輪詢
+│               ├── context.js       頁面狀態 S（依用途分組）與 api()
+│               ├── state.js         由 S 推導的資料（輪到誰、待審閱條文、可見條文…）
+│               ├── sync.js          與伺服器溝通：載入、輪詢、act／simple 送出操作、上傳圖片
+│               ├── router.js        分頁代號 ↔ 網址；go() 換頁，瀏覽器上一頁可用
+│               ├── render.js        繪製外框，再繪製目前分頁（見 tabs/index.js）
+│               ├── events.js        事件委派：data-act → 各分頁與共用的操作
+│               ├── shell/           各分頁共用的外框
+│               │   ├── topbar.js        頂端列：位置、成員頭像
+│               │   ├── nav.js           分頁導覽列（依分頁登錄產生）
+│               │   ├── page-header.js   頁首標題、說明、編輯契約名稱
+│               │   ├── name-prompt.js   第一次進入時填寫姓名與角色
+│               │   ├── actions.js       共用操作：換頁、交接（送審、送回、定稿、下一輪）、重試
+│               │   └── notify.js        「複製通知內容」的通知文字
+│               └── tabs/            七個分頁，一個資料夾一頁；index.js 是分頁定義
+│                   ├── index.js         分頁登錄與分頁定義的格式（Tab）
+│                   ├── overview/        總覽：view.js 步驟與下一步、news.js 自上次查看後的更新
+│                   ├── content/         契約內容：clauses.js 契約紙張、outline.js 條文目錄、toolbar.js 工具列、
+│                   │                    editor.js／editing.js 條文編輯與儲存、fields.js／field-popover.js 直接填寫、
+│                   │                    locate.js 定位條文
+│                   ├── review/          審閱：view.js 一次一處、summary.js 修訂摘要、actions.js 接受／退回／全部接受
+│                   ├── history/         修訂紀錄：view.js 紀錄與篩選
+│                   ├── members/         成員與連結：view.js 名單與邀請
+│                   ├── export/          匯出：view.js 格式選擇、export.js 產生 PDF／Word
+│                   └── import/          匯入：view.js 三種方式、previews.js 預覽與比對、import.js 讀檔與寫入
 ├── server/                      後端（Cloudflare Workers 執行環境）
 │   ├── router.js                /api/* 分派
 │   ├── http.js                  JSON 回應、錯誤、輸入檢查、上限
@@ -86,7 +89,10 @@ contract-editor/
 ├── test/
 │   ├── setup.mjs                以 jsdom 讓前端模組可在 Node 執行
 │   ├── unit/                    node:test 單元測試
-│   └── e2e/contract-flow.mjs    Playwright 完整流程測試
+│   └── e2e/
+│       ├── helpers.mjs          啟動本機伺服器、開啟分頁、切換契約分頁
+│       ├── contract-flow.mjs    主要流程：建立 → 填寫 → 邀請 → 審閱 → Word 往返 → PDF
+│       └── all-pages.mjs        逐一操作每個畫面的按鈕
 └── docs/ARCHITECTURE.md         本文件
 ```
 
@@ -95,18 +101,41 @@ contract-editor/
 依賴方向只能由上往下：
 
 ```
-pages/        頁面（組合下列各層）
-  ├─ views/   只負責產生畫面，不呼叫 API
-  └─ actions/ 處理使用者操作，呼叫 API 後交給 sync 更新
-word/ pdf/ ui/ api/   功能模組
-lib/          契約領域邏輯（不碰 DOM 以外的瀏覽器 API）
-core/         基礎工具
+pages/        畫面（每個畫面一個資料夾：畫面 HTML＋自己的操作）
+word/ pdf/ ui/ api/   功能模組（Word、PDF、介面元件、後端 API）
+lib/          契約領域邏輯（填寫欄位、條文切分、修訂比對），不碰畫面
+core/         基礎工具（DOM、格式、過濾、文字比對、函式庫載入）
 ```
 
-- 契約頁採「單一狀態 → 整頁重繪」：`context.js` 的 `S` 是唯一狀態來源，`render()` 依 `S` 產生畫面；`views/` 都是回傳 HTML 字串的純函式。所有使用者輸入的內容在輸出前都經 `esc()` 或 `sanitize()` 處理。
-- 版面：一頁一個重點。契約頁分成七個分頁（總覽、契約內容、審閱、修訂紀錄、成員、匯出、匯入），各有自己的網址；頂端列與分頁導覽列固定在上方。「契約內容」頁左側為條文目錄，窄螢幕時收成抽屜。
-- 事件統一在 `events.js` 以 `data-act` 委派，按鈕不各自綁定。
+- **一頁一個重點**：契約頁分成七個分頁（總覽、契約內容、審閱、修訂紀錄、成員、匯出、匯入），各有網址；首頁的列表與新增契約也是不同網址。
+- **單一狀態 → 整頁重繪**：契約頁的 `S`（context.js）是唯一狀態來源，`render()` 依 `S` 繪製；畫面函式只回傳 HTML 字串。所有使用者輸入的內容在輸出前都經 `esc()` 或 `sanitize()` 處理。
+- **操作就近放置**：按鈕以 `data-act` 標示操作名稱，處理函式寫在該分頁的 `index.js`（`actions`），跨分頁的操作在 `shell/actions.js`；`events.js` 只負責依名稱找到函式，名稱重複會直接報錯。
 - 第三方函式庫（mammoth、JSZip、docx、html2canvas、jsPDF）體積大，由 `core/loader.js` 在第一次需要時才載入；版本固定，且受 CSP 限制只允許 jsDelivr。
+
+### 分頁定義
+
+每個分頁的 `tabs/<代號>/index.js` 匯出一個物件（格式見 `tabs/index.js` 的 `Tab`）：
+
+```js
+export default {
+  id: "review",                                   // 與資料夾同名
+  nav: { icon: "review", label: "審閱", count: () => theirsClauses().length },
+  title: () => "審閱修訂",                         // 頁首標題
+  lede: () => "逐處確認他方的修訂……",              // 頁首說明
+  keepTyping: true,                               // 輸入中不被背景更新重繪
+  html: reviewHtml,                               // 主要內容
+  after() {},                                     // 內容放進畫面後（綁定表單等），可省略
+  actions: { "review-accept": (el, id) => decide(id, "accept") },
+  init() {}                                       // 啟動時執行一次，可省略
+};
+```
+
+### 新增一個分頁
+
+1. 建立 `tabs/<代號>/index.js`（分頁定義）與 `view.js`（畫面），操作寫在 `actions`。
+2. 在 `tabs/index.js` 的 `TABS` 加入，順序即導覽列順序。
+3. 在 `router.js` 的 `SLUGS` 加入網址片段。
+4. 樣式加到 `css/contract.css`，以分頁名稱分段。
 
 ## 資料模型（D1）
 
