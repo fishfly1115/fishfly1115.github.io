@@ -229,6 +229,6 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
   .rv-card { padding: 18px }
   .facts { gap: 8px }
   .facts div { padding: 10px 12px }
-  .exportbar .legend { display: none }
+  .pagebar .legend { display: none }
   .pn { padding-inline: 10px }
 }

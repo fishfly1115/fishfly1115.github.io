@@ -11,7 +11,8 @@
 import { S, ctx } from "./context.js";
 import { render } from "./render.js";
 
-const SLUGS = { overview: "", contract: "contract", review: "review", log: "history", members: "members", export: "export", import: "import" };
+// 分頁代號 → 網址片段（代號與 tabs/ 下的資料夾同名）
+const SLUGS = { overview: "", content: "contract", review: "review", history: "history", members: "members", export: "export", import: "import" };
 const BY_SLUG = Object.fromEntries(Object.entries(SLUGS).map(([v, s]) => [s, v]));
 
 export function viewFromPath() {

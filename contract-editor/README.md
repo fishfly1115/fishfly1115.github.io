@@ -14,9 +14,9 @@ public/js/
   core/    基礎工具（DOM、格式、過濾、比對、函式庫載入）
   lib/     契約領域邏輯（填寫欄位、條文切分、修訂版比對、範本）
   word/    Word 匯入匯出      pdf/  PDF 匯出      api/  後端 API
-  pages/   home.js 首頁；contract/ 契約頁（views 畫面、actions 操作）
+  pages/   home/ 首頁（登入、列表、新增契約）；contract/ 契約頁（shell 外框、tabs/ 七個分頁，一頁一個資料夾）
 server/    router → routes/（admin、contract、clauses、images）＋ db、auth、model
-test/      unit/ 單元測試、e2e/ 完整流程測試
+test/      unit/ 單元測試、e2e/ 完整流程與逐頁操作測試
 ```
 
 ## 部署方式一（建議）：GitHub Actions 自動部署
@@ -91,7 +91,7 @@ npm install
 npm run dev          # 本機伺服器 http://localhost:8788，管理密碼 dev-password
 npm run lint         # ESLint
 npm test             # 單元測試（欄位填寫、比對、條文切分、Word 匯出再匯入）
-npm run test:e2e     # 以瀏覽器走完整流程（需 Playwright 與 Chromium）
+npm run test:e2e     # 以瀏覽器走完整流程並逐頁操作（需 Playwright 與 Chromium）
 ```
 
 範本存放於 `public/data/templates.json`。要把一份 Word 契約做成範本：

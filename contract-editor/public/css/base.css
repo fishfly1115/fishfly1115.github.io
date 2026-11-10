@@ -61,9 +61,9 @@ header.top { padding-block: 24px 4px; display: grid; gap: 4px }
 .eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--muted) }
 h1 { margin: 0; font-family: var(--f-clause); font-size: 26px; font-weight: 700; letter-spacing: .04em; text-wrap: balance }
 .lede { color: var(--muted); margin: 0; max-width: 62ch }
-.exportbar { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-top: 14px }
-.exportbar:empty { display: none }
-.exportbar .hint { color: var(--muted); font-size: 13px; flex: 1 1 240px }
+.pagebar { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-top: 14px }
+.pagebar:empty { display: none }
+.pagebar .hint { color: var(--muted); font-size: 13px; flex: 1 1 240px }
 .warnline { color: var(--turn-fg); background: var(--turn-bg); padding: 8px 12px; border-radius: 8px; font-size: 13px; flex: 1 1 100% }
 .dangerline { color: var(--del-fg); background: var(--del-bg); padding: 10px 12px; border-radius: 8px; font-size: 13px }
 .news { margin-top: 14px; background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px }
@@ -106,7 +106,7 @@ a.btn { text-decoration: none }
 .crumb { color: var(--accent); text-decoration: none }
 .crumb:hover { text-decoration: underline }
 /* 工具列：選項顯示切換＋匯入／匯出／成員 */
-.exportbar { gap: 8px; align-items: center }
+.pagebar { gap: 8px; align-items: center }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sheet) }
 .seg button { border: 0; background: none; padding: 6px 12px; font-size: 13px; color: var(--muted) }
 .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500 }
