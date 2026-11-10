@@ -9,12 +9,12 @@ export const S = {
   // 載入與權限
   loaded: { c: false, r: false, h: false }, slow: false, noAccess: null, canWrite: true, isAdmin: false, busy: false,
   // 畫面
-  view: "contract", filter: "todo", onlyChecked: false, plainView: new Set(), expanded: new Set(), menu: null,
-  outlineOpen: false, panelTab: "review", focusPending: null, acceptAll: false, editing: null, editBase: null, adding: null, confirm: null, renaming: false,
-  peopleOpen: false, nameOpen: false, invited: null, forcePeople: false,
+  view: "overview", filter: "all", onlyChecked: false, plainView: new Set(), expanded: new Set(),
+  outlineOpen: false, focusPending: null, acceptAll: false, editing: null, editBase: null, adding: null, confirm: null, renaming: false,
+  nameOpen: false, invited: null, forcePeople: false, forceMain: false,
   // 匯入與匯出
   importing: false, importPreview: null, reimport: null, reimportAll: false, tplPick: false, tpls: null,
-  exporting: false, exportOpen: false, exportFmt: "pdf", exportOnlyChecked: true
+  exporting: false, exportFmt: "pdf", exportOnlyChecked: true
 };
 
 export const api = (path, body) => ctx.api(path, body);

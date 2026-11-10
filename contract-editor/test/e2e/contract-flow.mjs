@@ -40,13 +40,15 @@ const step = (msg) => console.log("✓", msg);
 async function startServer() {
   if (process.env.BASE_URL) return { base: process.env.BASE_URL.replace(/\/$/, ""), stop() {} };
   const proc = spawn("npx", ["wrangler", "pages", "dev", "public", "--port", String(PORT), "--persist-to", join(work, "state"),
-    "--d1", "DB=e2e-db", "--r2", "IMAGES=e2e-img", "--binding", `ADMIN_PASSWORD=${PASSWORD}`], { cwd: ROOT, stdio: "ignore", env: { ...process.env, WRANGLER_SEND_METRICS: "false" } });
+    "--d1", "DB=e2e-db", "--r2", "IMAGES=e2e-img", "--binding", `ADMIN_PASSWORD=${PASSWORD}`], { cwd: ROOT, stdio: "ignore", detached: true, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } });
+  // 停止整個程序群組（npx → wrangler → workerd），避免殘留的伺服器佔住連接埠
+  const stop = () => { try { process.kill(-proc.pid); } catch {} };
   const base = `http://127.0.0.1:${PORT}`;
   for (let i = 0; i < 120; i++) {
-    try { if ((await fetch(base + "/")).ok) return { base, stop: () => proc.kill() }; } catch {}
+    try { if ((await fetch(base + "/")).ok) return { base, stop }; } catch {}
     await new Promise((r) => setTimeout(r, 500));
   }
-  proc.kill();
+  stop();
   throw new Error("wrangler 未能在 60 秒內啟動");
 }
 
@@ -68,12 +70,17 @@ async function setName(page, name, title) {
   await page.fill("#myname", name);
   await page.fill("#mytitle", title);
   await page.click("#nameform button[type=submit]");
-  await page.waitForSelector("[data-act=people]");
+  await page.waitForSelector("#nameform", { state: "detached" });
+}
+
+// 切換契約頁的分頁（總覽、契約內容、審閱、修訂紀錄、成員、匯出、匯入）
+async function nav(page, view, ready) {
+  await page.click(`.pagenav [data-v=${view}]`);
+  if (ready) await page.waitForSelector(ready);
 }
 
 async function invite(page, side, label) {
-  await page.click("[data-act=people]");
-  await page.waitForSelector("#iside");
+  await nav(page, "members", "#iside");
   if (side) await page.selectOption("#iside", side);
   if (label) await page.fill("#ilabel", label);
   await page.click("#inviteform button[type=submit]");
@@ -119,8 +126,12 @@ async function main() {
     await owner.fill("#ncase", "R-115-001");
     await owner.click("[data-form=create] button[type=submit]");
     await owner.waitForURL(/\/c\//);
-    await owner.waitForSelector(".clause");
+    const contractUrl = owner.url();
+    await owner.waitForSelector(".hero");
     await setName(owner, "陳承辦", "承辦人");
+    assert.match(await owner.textContent(".hero h2"), /修訂契約內容/);
+    await nav(owner, "contract", ".clause");
+    assert.match(owner.url(), /\/contract$/);
     assert.ok(await owner.locator(".fx-box").count() > 10, "範本應含可勾選的 □");
     step(`以範本建立契約（${await owner.locator(".clause").count()} 條）`);
 
@@ -143,7 +154,7 @@ async function main() {
     assert.match(text, /115年12月31日/);
     assert.match(text, /量子演算法/);
     const pending = await owner.evaluate(async () => {
-      const r = await fetch(location.pathname.replace("/c/", "/api/c/") + "/state", { headers: { "x-admin-password": localStorage.getItem("ce:admin") } });
+      const r = await fetch("/api" + location.pathname.match(/\/c\/[0-9a-f-]{36}/)[0] + "/state", { headers: { "x-admin-password": localStorage.getItem("ce:admin") } });
       return (await r.json()).revisions.filter((x) => x.status === "pending").length;
     });
     assert.equal(pending, 1, "連續填寫應合併為一筆修訂");
@@ -167,41 +178,47 @@ async function main() {
     step("廠商加入並新增本方成員");
 
     // 5. 廠商法務接受機關的修訂（審閱以「方」為單位）
-    await legal.waitForSelector("section.clause[data-state=theirs]");
-    await legal.locator("section.clause[data-state=theirs] [data-act=accept]").first().click();
-    await legal.waitForSelector("section.clause[data-state=theirs]", { state: "detached" });
+    await nav(legal, "review", ".rv-card");
+    assert.match(await legal.textContent(".rv-count"), /第 1／1 處/);
+    await legal.click("[data-act=review-accept]");
+    await legal.waitForSelector(".rv-card", { state: "detached" });
+    assert.match(await legal.textContent(".hero h2"), /沒有待您審閱/);
     step("廠商接受機關修訂");
 
     // 6. 廠商匯出 Word → 修改 → 匯回比對
-    await legal.click("[data-act=export-open]");
+    await nav(legal, "export", "input[name=efmt]");
     await legal.check("input[name=efmt][value=docx]");
     const docxFile = join(work, "export.docx"), edited = join(work, "edited.docx");
     assert.ok(await download(legal, docxFile) > 5000);
     await editDocx(docxFile, edited);
-    await legal.click("[data-act=menu]");
+    await nav(legal, "import", ".choice");
     await legal.setInputFiles("#rev-input", edited);
     await legal.waitForSelector(".stats");
     const stats = (await legal.locator(".stats .pill").allTextContents()).join(" ");
     const changed = Number(stats.match(/修訂 (\d+)/)[1]);
     assert.ok(changed >= 1 && /新增 0 條/.test(stats) && /刪除 0 條/.test(stats), "比對結果：" + stats);
     await legal.click("[data-act=reimport-go]");
-    await legal.waitForSelector(".clause");
+    await legal.waitForSelector(".hero");
     step(`匯出 Word 修改後匯回（${stats}）`);
 
-    // 7. 機關看到待審閱修訂，並匯出 PDF
-    // 寬螢幕：審閱改在右側面板，每條一張卡片，列出改了什麼
+    // 7. 機關：總覽提示審閱 → 審閱頁一次一處 → 匯出 PDF
     const owner2 = await newPage(browser, { admin: PASSWORD, width: 1440 });
-    await owner2.goto(owner.url());
-    await owner2.waitForSelector("section.clause[data-state=theirs]");
-    assert.equal(await owner2.locator("section.clause[data-state=theirs]").count(), changed);
-    assert.equal(await owner2.locator(".rcard").count(), changed);
-    assert.match(await owner2.locator(".rcard .chg").first().innerText(), /乙方修訂/);
-    assert.ok(await owner2.locator("section.clause .rv-acts").first().isHidden(), "有面板時條文內不重複顯示接受／退回");
-    await owner2.click("[data-act=export-open]");
+    await owner2.goto(contractUrl);
+    await owner2.waitForSelector(".hero");
+    assert.match(await owner2.textContent(".hero h2"), new RegExp(`審閱乙方的 ${changed} 處修訂`));
+    await owner2.click(".hero [data-v=review]");
+    await owner2.waitForSelector(".rv-card");
+    assert.match(await owner2.textContent(".rv-count"), new RegExp(`第 1／${changed} 處`));
+    assert.match(await owner2.locator(".chg").innerText(), /乙方修訂/);
+    await owner2.click("[data-act=review-accept]");
+    await owner2.waitForFunction((n) => document.querySelector(".rv-count")?.textContent.includes(`／${n} 處`), changed - 1);
+    await nav(owner2, "contract", "section.clause[data-state=theirs]");
+    assert.equal(await owner2.locator("section.clause[data-state=theirs] [data-act=review-go]").count(), changed - 1);
+    await nav(owner2, "export", "input[name=efmt]");
     const pdfFile = join(work, "export.pdf");
     assert.ok(await download(owner2, pdfFile) > 10000);
     assert.equal(readFileSync(pdfFile).subarray(0, 4).toString(), "%PDF");
-    step("機關收到待審閱修訂並匯出 PDF");
+    step("機關在審閱頁逐處處理修訂並匯出 PDF");
 
     console.log("\n全部通過");
   } finally {

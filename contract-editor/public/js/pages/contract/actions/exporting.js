@@ -20,7 +20,7 @@ function fileName(ext) {
 
 async function run(task) {
   if (S.exporting) return;
-  S.exporting = true; S.exportOpen = false; render();
+  S.exporting = true; render();
   try { await task(); } finally { S.exporting = false; render(); }
 }
 

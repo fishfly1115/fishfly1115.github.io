@@ -6,5 +6,5 @@ import { initThemeToggle } from "./ui/theme-toggle.js";
 
 installIndentStyles();
 initThemeToggle();
-const route = location.pathname.match(/^\/c\/([0-9a-f-]{36})\/?$/i);
+const route = location.pathname.match(/^\/c\/([0-9a-f-]{36})(\/[a-z]*)?\/?$/i);
 if (route) startContract(route[1]); else startHome();

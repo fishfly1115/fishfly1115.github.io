@@ -8,6 +8,7 @@ import { render } from "../render.js";
 import { clauseHtmlOf, live } from "../state.js";
 import { act } from "../sync.js";
 import { readDocx } from "../../../word/docx-import.js";
+import { go } from "../router.js";
 
 export async function pickDocx(file) {
   if (!file) return;
@@ -15,12 +16,12 @@ export async function pickDocx(file) {
     toast(/\.doc$/i.test(file.name) ? "這是舊版 .doc 檔。請用 Word 開啟後「另存新檔」選 .docx，再匯入一次。" : "請選擇 Word 的 .docx 檔。");
     return;
   }
-  S.importing = true; S.menu = null; render();
+  S.importing = true; render();
   try {
     const { html, imgFail } = await readDocx(file, uploadImage);
     const parsed = splitRich(html, file.name.replace(/\.docx$/i, ""));
     if (!parsed.clauses.length) toast("這個 Word 檔裡沒有讀到內容。");
-    else { S.importPreview = { ...parsed, source: file.name, imgFail }; S.view = "contract"; }
+    else { S.importPreview = { ...parsed, source: file.name, imgFail }; S.view = "import"; }
   } catch (e) { console.error(e); toast("讀不到這個 Word 檔，請確認它是未加密的 .docx 檔。"); }
   S.importing = false; render(); window.scrollTo({ top: 0 });
 }
@@ -28,18 +29,18 @@ export async function doImport() {
   const p = S.importPreview; if (!p || S.importing) return;
   const title = ($("imp-title")?.value || "").trim() || p.title;
   S.importing = true; render();
-  try { await act("import", { title, source: p.source, clauses: p.clauses }, `已匯入「${title}」，共 ${p.clauses.length} 個條文`); S.importPreview = null; } catch {}
+  try { await act("import", { title, source: p.source, clauses: p.clauses }, `已匯入「${title}」，共 ${p.clauses.length} 個條文`); S.importPreview = null; S.importing = false; go("contract"); return; } catch {}
   S.importing = false; render();
 }
 export async function pickRevised(file) {
   if (!file) return;
   if (!/\.docx$/i.test(file.name)) { toast(/\.doc$/i.test(file.name) ? "舊版 .doc 檔請先以 Word「另存新檔」為 .docx 再匯入" : "請選擇 .docx 檔"); return; }
-  S.importing = true; S.menu = null; render();
+  S.importing = true; render();
   try {
     const { html, imgFail } = await readDocx(file, uploadImage);
     const imported = splitByHeadings(html);
     if (!imported.length) toast("檔案中沒有可比對的條文");
-    else { S.reimport = { ...compareRevision(imported, live(), clauseHtmlOf), source: file.name, imgFail }; S.reimportAll = false; S.view = "contract"; }
+    else { S.reimport = { ...compareRevision(imported, live(), clauseHtmlOf), source: file.name, imgFail }; S.reimportAll = false; S.view = "import"; }
   } catch (e) { console.error(e); toast("無法讀取此 Word 檔，請確認為未加密的 .docx 檔"); }
   S.importing = false; render(); window.scrollTo({ top: 0 });
 }
@@ -50,7 +51,7 @@ export async function doReimport() {
       : i.type === "delete" ? { type: "delete", clauseId: i.clause.id, baseRev: i.clause.rev, title: i.title }
         : { type: "add", title: i.title, html: i.html, order: i.order });
   S.busy = true; render();
-  try { await act("bulk", { changes }, `已送出 ${changes.length} 處修訂`); S.reimport = null; }
+  try { await act("bulk", { changes }, `已送出 ${changes.length} 處修訂`); S.reimport = null; S.busy = false; go("overview"); return; }
   catch (e) { if (e.status === 409) toast(e.message); }
   S.busy = false; render();
 }
