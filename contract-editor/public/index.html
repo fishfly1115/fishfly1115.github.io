@@ -23,7 +23,7 @@
     <div class="topact" id="turn"></div>
     <button class="btn icon ghost theme-btn" id="themebtn" type="button" aria-label="切換深色／淺色"></button>
   </div>
-  <div class="flowbar" id="flow" hidden></div>
+  <nav class="pagenav" id="tabs" aria-label="契約頁面" hidden></nav>
 </div>
 <div class="layout" id="layout">
   <aside class="outline" id="outline" aria-label="條文目錄" hidden></aside>
@@ -33,15 +33,11 @@
       <h1 id="ctitle">合約共同編輯器</h1>
       <p class="lede" id="lede" hidden></p>
       <div id="exportbar" class="exportbar"></div>
-      <div id="people-home"><div id="people"></div></div>
-      <div id="news"></div>
+      <div id="people"></div>
     </header>
-    <nav class="tabs" role="tablist" id="tabs"></nav>
     <main id="main"></main>
   </div>
-  <aside class="rpanel" id="rpanel" aria-label="審閱面板" hidden></aside>
 </div>
-<div class="mbar" id="mbar" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pdf-stage" aria-hidden="true"></div>
 <input type="file" id="rev-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>

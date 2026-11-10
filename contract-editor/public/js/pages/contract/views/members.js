@@ -1,11 +1,10 @@
-// 成員面板：甲乙方成員、新增成員連結、個人姓名與角色。
+// 「成員與連結」頁：甲乙方成員、新增成員連結、個人姓名與角色（第一次進入時的姓名表單也在這裡）。
 import { $, esc } from "../../../core/dom.js";
 import { fmt } from "../../../core/format.js";
 import { S, ctx } from "../context.js";
 import { render } from "../render.js";
 import { ROLES, SIDE, mySide, otherLabel } from "../state.js";
 import { act } from "../sync.js";
-import { icon } from "../../../ui/icons.js";
 
 export function renderPeople() {
   const el = $("people");
@@ -26,7 +25,7 @@ export function renderPeople() {
     });
     return;
   }
-  if (!S.peopleOpen) { el.innerHTML = ""; return; }
+  if (S.view !== "members") { el.innerHTML = ""; return; }
   // don't wipe what is being typed in the invite form during a background refresh
   const ae = document.activeElement;
   if ($("inviteform") && ae && /^(INPUT|SELECT)$/.test(ae.tagName) && $("people").contains(ae) && !S.forcePeople) return;
@@ -37,7 +36,7 @@ export function renderPeople() {
       ${(p.role !== "owner" && p.id !== S.uid && (S.isAdmin || p.side === mySide())) ? `<button class="btn sm ghost" data-act="revoke" data-id="${p.id}">停用連結</button>` : ""}</li>`;
   const sideBlock = (side) => `<div class="side-col"><h3>${SIDE[side]}${side === mySide() ? "（本方）" : ""}</h3><ul class="plist2">${group(side).map(row).join("") || `<li><span class="meta">尚無成員</span></li>`}</ul></div>`;
   const otherSide = mySide() === "A" ? "B" : "A";
-  el.innerHTML = `<section class="panel"><div class="row"><h2>成員</h2><div class="grow"></div><button class="btn icon ghost" data-act="people" aria-label="關閉">${icon("close")}</button></div>
+  el.innerHTML = `<section class="card page-card">
     <div class="sides">${sideBlock(mySide())}${sideBlock(otherSide)}</div>
     <form id="inviteform" class="row">
       <div class="field" style="flex:0 1 160px"><label for="iside">新增至</label><select id="iside" class="inp">${`<option value="${mySide()}">本方（${SIDE[mySide()]}）</option>`}${S.isAdmin ? `<option value="${otherSide}">他方（${SIDE[otherSide]}）</option>` : ""}</select></div>

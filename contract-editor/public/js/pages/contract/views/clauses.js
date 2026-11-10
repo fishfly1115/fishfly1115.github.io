@@ -23,7 +23,7 @@ export function contractHtml() {
 function sheetHead() {
   const src = S.contract?.source ? (S.contract.source.startsWith("範本：") ? S.contract.source : `匯入自 ${S.contract.source}`) : "";
   const meta = [caseNo() && `案號 ${caseNo()}`, `第 ${roundNo()} 輪`, src].filter(Boolean).map(esc).join("<span aria-hidden=\"true\">　·　</span>");
-  return `<header class="sheet-head"><h2>${esc(docTitle())}${S.isAdmin ? ` <button class="btn icon ghost" data-act="rename-open" aria-label="編輯名稱與案號" title="編輯名稱與案號">${icon("edit", { size: 18 })}</button>` : ""}</h2><p>${meta}</p></header>`;
+  return `<header class="sheet-head"><h2>${esc(docTitle())}</h2><p>${meta}</p></header>`;
 }
 export function fieldsView(html, interactive) {
   if (S.onlyChecked) return Fields.hideUncheckedHtml(html);
@@ -69,7 +69,7 @@ export function clauseHtml(c, idx, vis) {
     review = `<div class="review">
       <span class="note">${esc(authors)} · ${fmt(pend[pend.length - 1].at)} · ${esc(what)}${pend.length > 1 ? ` ${pend.length} 次` : ""}</span>
       ${firstEdit && !isAdd && !isDel ? `<button class="linkbtn" data-act="toggle-plain" data-id="${c.id}">${plain ? "顯示修訂處" : "只看修訂後"}</button>` : ""}
-      <span class="rv-acts">${theirs.length ? `<button class="btn sm bad" data-act="revert-open" data-id="${c.id}">退回</button><button class="btn sm good" data-act="accept" data-id="${c.id}">接受</button>` : ""}
+      <span class="rv-acts">${theirs.length ? `<button class="btn sm primary" data-act="review-go" data-id="${c.id}">前往審閱${icon("chevronRight", { size: 16 })}</button>` : ""}
       ${!theirs.length && ours.length ? `<button class="btn sm" data-act="revert-open" data-id="${c.id}">撤回</button>` : ""}</span>
     </div>`;
   }

@@ -4,6 +4,7 @@ import { contractApi } from "../../api/client.js";
 import { store } from "../../core/storage.js";
 import { S, api, ctx } from "./context.js";
 import { bindEvents } from "./events.js";
+import { bindRouter, viewFromPath } from "./router.js";
 import { render } from "./render.js";
 import { refresh, startPolling } from "./sync.js";
 
@@ -18,7 +19,9 @@ export function startContract(cid) {
   if (!ctx.ADMIN) document.getElementById("brand").removeAttribute("href");
   S.onlyChecked = store.get("ce:only:" + cid) === "1";
 
+  S.view = viewFromPath();
   bindEvents();
+  bindRouter();
   try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch { /* older browsers */ }
   render();
   if (!ctx.KEY && !ctx.ADMIN) {

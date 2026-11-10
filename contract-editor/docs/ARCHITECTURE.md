@@ -44,19 +44,21 @@ contract-editor/
 │           ├── home.js          首頁：登入、契約列表、新增／改名／刪除
 │           └── contract/        契約頁
 │               ├── index.js     啟動：讀連結金鑰、綁定事件、開始輪詢
+│               ├── router.js    分頁與網址（/c/<id>/review 等），瀏覽器上一頁可用
 │               ├── context.js   頁面共用狀態 S 與 api()
 │               ├── state.js     由狀態推導的選擇器（目前輪到誰、待審閱、可見條文…）
 │               ├── sync.js      取得最新狀態、輪詢、執行動作後更新
 │               ├── render.js    依狀態重繪整頁
 │               ├── events.js    事件委派：data-act 按鈕、表單、欄位點選
 │               ├── views/       純畫面（回傳 HTML 字串）
-│               │   ├── turnbar.js       頂端列（位置、成員）與流程進度列（四個步驟、輪到誰、下一步）
-│               │   ├── review-panel.js  右側審閱面板：每條修訂一張卡片（改了什麼、接受／退回）、成員分頁
-│               │   ├── mobile-bar.js    手機底部審閱列（第 i／n 處、接受／退回）
+│               │   ├── turnbar.js       頂端列（位置、成員頭像）
+│               │   ├── nav.js           分頁導覽列
+│               │   ├── overview.js      總覽頁：四個步驟、輪到誰、唯一的下一步按鈕
+│               │   ├── review-page.js   審閱頁：一次一處修訂（改了什麼、條文全文、接受／退回）
 │               │   ├── outline.js       左側條文目錄（審閱狀態、跳到下一處待審閱）
-│               │   ├── toolbar.js       工具列、匯出選單
-│               │   ├── members.js       成員與連結
-│               │   ├── news.js          他方新動態
+│               │   ├── toolbar.js       各頁標題與說明、契約內容工具列、匯出頁、匯入頁
+│               │   ├── members.js       成員與連結頁
+│               │   ├── news.js          自上次查看後的更新（總覽頁）
 │               │   ├── clauses.js       條文與修訂審閱
 │               │   ├── editor.js        條文編輯器
 │               │   ├── field-popover.js 日期／空格填寫小視窗
@@ -64,7 +66,7 @@ contract-editor/
 │               │   └── importing.js     匯入預覽、匯回比對
 │               └── actions/     使用者操作（呼叫 API、改狀態）
 │                   ├── fields.js     直接填寫（連續填寫合併為一筆修訂）
-│                   ├── navigate.js   定位條文、依序跳到下一處待審閱
+│                   ├── navigate.js   契約內容頁定位條文
 │                   ├── editing.js    編輯、儲存、圖片上傳
 │                   ├── importing.js  匯入 Word、匯回修訂版
 │                   └── exporting.js  匯出 PDF／Word
@@ -102,7 +104,7 @@ core/         基礎工具
 ```
 
 - 契約頁採「單一狀態 → 整頁重繪」：`context.js` 的 `S` 是唯一狀態來源，`render()` 依 `S` 產生畫面；`views/` 都是回傳 HTML 字串的純函式。所有使用者輸入的內容在輸出前都經 `esc()` 或 `sanitize()` 處理。
-- 版面：頂端列與流程進度列固定在上方；契約頁為「條文目錄｜契約內容｜審閱面板」三欄。寬度 < 1280px 時審閱按鈕回到條文內；< 960px 時目錄收成抽屜，並以底部審閱列操作。
+- 版面：一頁一個重點。契約頁分成七個分頁（總覽、契約內容、審閱、修訂紀錄、成員、匯出、匯入），各有自己的網址；頂端列與分頁導覽列固定在上方。「契約內容」頁左側為條文目錄，窄螢幕時收成抽屜。
 - 事件統一在 `events.js` 以 `data-act` 委派，按鈕不各自綁定。
 - 第三方函式庫（mammoth、JSZip、docx、html2canvas、jsPDF）體積大，由 `core/loader.js` 在第一次需要時才載入；版本固定，且受 CSP 限制只允許 jsDelivr。
 

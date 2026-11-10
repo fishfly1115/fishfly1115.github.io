@@ -15,7 +15,7 @@ import { icon } from "../ui/icons.js";
  */
 export function startHome() {
   let pw = store.get("ce:admin") || "";
-  let tpls = null, list = null, busy = false, creating = false, renaming = null, confirmDel = null, q = "", rowMenu = null;
+  let tpls = null, list = null, busy = false, creating = location.pathname === "/new", renaming = null, confirmDel = null, q = "", rowMenu = null;
   let only = store.get("ce:home:filter");
   const SIDE = { A: "甲方", B: "乙方" };
   // 依「輪到誰」分組；統計卡同時是篩選器
@@ -40,6 +40,10 @@ export function startHome() {
     document.querySelector("header.top").hidden = !list;
     if (!list) return;
     $("ctitle").hidden = true;
+    if (creating) {
+      $("exportbar").innerHTML = `<div class="home-head"><div><a class="crumb" href="/" data-act="new-cancel">契約案件</a><h1>新增契約</h1></div></div>`;
+      return;
+    }
     const count = (k) => list.filter((c) => bucketOf(c) === k).length;
     const label = BUCKETS.find(([k]) => k === only)?.[1];
     $("exportbar").innerHTML = `
@@ -108,13 +112,13 @@ export function startHome() {
       ? `<div class="empty"><p>尚無契約案件</p><button class="btn primary" data-act="new">新增契約</button></div>`
       : `<div class="empty"><p>沒有符合條件的契約</p><button class="btn" data-act="clear-filter">清除篩選</button></div>`;
     main.innerHTML = `
-      ${creating ? `<form class="panel" data-form="create"><div class="row"><h2>新增契約</h2><div class="grow"></div><button class="btn icon ghost" type="button" data-act="new-cancel" aria-label="關閉">${icon("close")}</button></div>
-        <div class="field"><label>契約範本</label>${tpls ? tplPicker(tpls, "blank") : `<span class="skel" style="height:64px"></span>`}<p class="meta-s" id="tplnotice" hidden>${esc(tpls?.notice || "")}範本中【　】為待填欄位。</p></div>
+      ${creating ? `<form class="card page-card new-form" data-form="create"><h2 class="pc-h">1　選擇範本</h2>
+        <div class="field">${tpls ? tplPicker(tpls, "blank") : `<span class="skel" style="height:64px"></span>`}<p class="meta-s" id="tplnotice" hidden>${esc(tpls?.notice || "")}範本中【　】為待填欄位。</p></div>
+        <h2 class="pc-h">2　填寫契約資料</h2>
         <div class="field"><label for="ntitle">契約名稱（案名）</label><input id="ntitle" maxlength="200" placeholder="例如：115 年度資訊系統維護採購案" required></div>
         <div class="row"><div class="field grow"><label for="ncase">案號</label><input id="ncase" maxlength="100" placeholder="例如：115-A-001（選填）"></div>
         <div class="field grow"><label for="nrole">本方身分</label><select id="nrole" class="inp"><option>機關（甲方）</option><option>廠商（乙方）</option></select></div></div>
-        <div class="row"><div class="grow"></div><button class="btn" type="button" data-act="new-cancel">取消</button><button class="btn primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "建立中…" : "建立並開啟"}</button></div></form>` : ""}
-      ${shown.length ? `<div class="card table-card"><table class="ctable">
+        <div class="row"><div class="grow"></div><button class="btn" type="button" data-act="new-cancel">取消</button><button class="btn primary lg" type="submit" ${busy ? "disabled" : ""}>${busy ? "建立中…" : "建立並開啟"}</button></div></form>` : shown.length ? `<div class="card table-card"><table class="ctable">
         <thead><tr><th>契約名稱</th><th>狀態</th><th>輪到</th><th>他方</th><th class="num">更新時間</th><th><span class="sr">動作</span></th></tr></thead>
         <tbody>${shown.map(row).join("")}</tbody></table></div>` : empty}`;
     if (creating) {
@@ -164,8 +168,8 @@ export function startHome() {
     const a = b.dataset.act;
     if (a === "rename" || a === "del") rowMenu = null;
     if (a === "new" && !tpls) loadTemplates().then((d) => { tpls = d; if (creating) redrawKeepingInput(); }).catch((e) => toast(e.message));
-    if (a === "new") { creating = true; renaming = null; confirmDel = null; draw(); }
-    if (a === "new-cancel") { creating = false; draw(); }
+    if (a === "new") { ev.preventDefault(); creating = true; renaming = null; confirmDel = null; history.pushState(null, "", "/new"); draw(); window.scrollTo({ top: 0 }); }
+    if (a === "new-cancel") { ev.preventDefault(); creating = false; history.pushState(null, "", "/"); draw(); }
     if (a === "rename") { renaming = b.dataset.id; confirmDel = null; draw(); }
     if (a === "rename-cancel") { renaming = null; draw(); }
     if (a === "del") { confirmDel = b.dataset.id; renaming = null; draw(); }
@@ -174,8 +178,10 @@ export function startHome() {
     if (a === "row-menu") { rowMenu = rowMenu === b.dataset.id ? null : b.dataset.id; draw(); return; }
     if (a === "filter") { only = b.dataset.v; store.set("ce:home:filter", only); draw(); }
     if (a === "clear-filter") { only = "all"; q = ""; store.set("ce:home:filter", "all"); draw(); }
-    if (a === "logout") { store.set("ce:admin", null); pw = ""; list = null; creating = false; draw(); }
+    if (a === "logout") { store.set("ce:admin", null); pw = ""; list = null; creating = false; history.replaceState(null, "", "/"); draw(); }
   });
+  window.addEventListener("popstate", () => { creating = location.pathname === "/new"; draw(); });
+  if (creating && !tpls) loadTemplates().then((d) => { tpls = d; redrawKeepingInput(); }).catch((e) => toast(e.message));
   document.addEventListener("visibilitychange", () => { if (!document.hidden && list) load(); });
   pw ? load() : draw();
 }
