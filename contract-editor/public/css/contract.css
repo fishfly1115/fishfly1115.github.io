@@ -41,8 +41,13 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .rich p, .rich div { margin: 0 0 .5em }
 .rich ol, .rich ul { margin: 0 0 .5em; padding-left: 2em }
 .rich h1, .rich h2, .rich h3, .rich h4, .rich h5, .rich h6 { font-size: 1.05em; margin: .6em 0 .3em }
-.rich table { border-collapse: collapse; margin: .4em 0 .8em; font-size: .95em }
-.rich td, .rich th { border: 1px solid var(--line); padding: 4px 10px; vertical-align: top; min-width: 3em }
+/* 表格：滿版、框線清楚、儲存格內不留段落間距；第一列為表頭底色 */
+.rich table { width: 100%; border-collapse: collapse; margin: .5em 0 1em; font-size: .95em }
+.rich td, .rich th { border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); padding: 6px 10px; vertical-align: middle; min-width: 3em; height: 2.6em; line-height: 1.6 }
+.rich td > p, .rich th > p { margin: 0 }
+/* 窄螢幕：欄位多的表格保持可讀寬度，改為左右捲動（條文區塊本身可水平捲動） */
+@media (max-width: 640px) { .rich table { width: auto; min-width: 100% } .rich td, .rich th { min-width: 5.5em } }
+.rich tr:first-child > td, .rich th { background: color-mix(in srgb, var(--paper) 70%, transparent); font-weight: 500 }
 .rich img { max-width: 100%; height: auto }
 .rich blockquote { margin: 0 0 .5em; padding-left: 1em; border-left: 3px solid var(--line) }
 
@@ -93,7 +98,11 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .fx-box { color: var(--accent); font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", var(--f-body); font-size: 1.05em; line-height: 1; padding: 0 2px }
 .fx-box[aria-checked="true"] { color: var(--ins-fg) }
 .fx-date, .fx-blank { box-shadow: inset 0 -1px 0 var(--accent); min-width: 2.5em; display: inline }
-.fx-cell { width: 100%; min-height: 1.6em; color: var(--muted); font-size: 13px; text-align: left; outline: 1px dashed var(--line); outline-offset: -2px }
+/* 可填寫的空白儲存格：整格可點，滑鼠移入或鍵盤選取時才提示 */
+.rich td:has(> .fx-cell) { padding: 0 }
+.fx-cell { display: block; width: 100%; height: 100%; min-height: 2.6em; padding: 6px 10px; color: var(--accent); font-size: 13px; text-align: left; border-radius: 0 }
+.fx-cell:hover, .fx-cell:focus-visible { background: var(--accent-soft) }
+.fx-cell:hover::after, .fx-cell:focus-visible::after { content: "填寫" }
 /* 成員 */
 .sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px }
 .side-col h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: .04em }

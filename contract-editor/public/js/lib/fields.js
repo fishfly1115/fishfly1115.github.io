@@ -87,7 +87,8 @@ function decorate(root, labels) {
     const f = fields[k], doc = root.ownerDocument;
     const btn = doc.createElement("button");
     btn.type = "button"; btn.className = `fx fx-${f.type}`; btn.dataset.fx = String(k); btn.dataset.kind = f.type;
-    if (f.type === "cell") { btn.textContent = labels.cell; f.block.textContent = ""; f.block.appendChild(btn); continue; }
+    // 空白儲存格：按鈕佔滿整格，平常不顯示文字（滑鼠移入時由 CSS 提示「填寫」）
+    if (f.type === "cell") { btn.setAttribute("aria-label", labels.cell); f.block.textContent = ""; f.block.appendChild(btn); continue; }
     const r = rangeFor(f.block, f.map, f.a, f.b); if (!r) continue;
     btn.appendChild(r.extractContents());
     if (f.type === "box") { btn.setAttribute("role", "checkbox"); btn.setAttribute("aria-checked", f.checked ? "true" : "false"); btn.setAttribute("aria-label", f.checked ? labels.checked : labels.unchecked); btn.textContent = f.checked ? "☑" : "□"; }
