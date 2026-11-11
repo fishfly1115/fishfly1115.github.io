@@ -13,6 +13,7 @@ import { fieldChange } from "./fields.js";
 import { locate } from "./locate.js";
 import { renderOutline, watchOutline } from "./outline.js";
 import { renderToolbar } from "./toolbar.js";
+import { SIDE, otherSide } from "../../state.js";
 
 // 編輯中的條文：重繪時保留同一個編輯器元素，避免清掉尚未儲存的內容
 let keptEditor = null;
@@ -24,6 +25,7 @@ export default {
   nav: { icon: "document", label: "契約內容" },
   title: () => "契約內容",
   lede: () => "直接勾選、填寫，或按「修訂」修改條文；每處修改都會留下紀錄，交由他方審閱。",
+  tasks: () => ["點 □ 勾選，點底線空格或日期直接填寫", "要改條文文字，按條文右上「修訂」", `全部改完，按上方「交給${SIDE[otherSide()]}」`],
   html() {
     const key = editingKey();
     keptEditor = key ? document.getElementById("editor-" + key) : null;

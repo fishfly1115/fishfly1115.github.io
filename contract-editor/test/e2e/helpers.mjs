@@ -63,3 +63,24 @@ export async function nav(page, view, ready) {
   if (ready) await page.waitForSelector(ready);
 }
 
+
+// 到「成員與連結」頁讀取某一方的共編連結與進入密碼（which：「本方」或「他方」）
+export async function readShare(page, which) {
+  await nav(page, "members", ".share-box [data-share=pin]");
+  const card = page.locator(".side-card", { hasText: `（${which}）` });
+  return {
+    link: (await card.locator("[data-share=link]").textContent()).trim(),
+    pin: (await card.locator("[data-share=pin]").textContent()).replace(/\s/g, "")
+  };
+}
+
+// 以共編連結＋進入密碼加入契約，完成後停在契約總覽
+export async function joinWith(page, { link, pin }, name, title) {
+  await page.goto(link);
+  await page.fill("#jpin", pin);
+  await page.fill("#jname", name);
+  await page.fill("#jtitle", title);
+  await page.click("#joinform button[type=submit]");
+  await page.waitForURL(/\/c\/[0-9a-f-]{36}$/);
+  await page.waitForSelector(".hero");
+}

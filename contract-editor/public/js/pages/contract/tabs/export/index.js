@@ -11,6 +11,7 @@ export default {
   nav: { icon: "download", label: "匯出" },
   title: () => "匯出",
   lede: () => "下載 PDF 定稿本，或可在 Word 中繼續修訂的檔案。",
+  tasks: () => ["選擇 PDF 定稿本或 Word", "需要時勾選「僅保留已勾選的選項」", "按「匯出」下載檔案"],
   html: exportHtml,
   actions: {
     "export-go": () => { const only = $("eonly")?.checked ?? false; S.exportFmt === "pdf" ? exportPdf(only) : exportWord(only); }

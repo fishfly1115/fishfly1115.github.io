@@ -61,7 +61,7 @@ export async function adminRoutes(request, env, seg) {
   }
   if (seg[1] === "contracts" && seg.length === 3 && m === "DELETE") {
     const cid = seg[2];
-    await env.DB.batch(["revisions", "clauses", "participants"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE contract_id = ?`).bind(cid))
+    await env.DB.batch(["revisions", "clauses", "participants", "invites"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE contract_id = ?`).bind(cid))
       .concat(env.DB.prepare("DELETE FROM contracts WHERE id = ?").bind(cid)));
     if (env.IMAGES) {
       let cursor;

@@ -47,6 +47,7 @@ contract-editor/
 │           │   ├── login.js         登入
 │           │   ├── list.js          契約列表：統計卡篩選、搜尋、改名、刪除
 │           │   └── new-contract.js  新增契約：選範本、填資料、建立
+│           ├── join/index.js    加入契約（/j/<代碼>）：輸入進入密碼、姓名與角色
 │           └── contract/        契約頁（/c/<id>/…）
 │               ├── index.js         啟動：讀連結金鑰、綁定事件與網址、開始輪詢
 │               ├── context.js       頁面狀態 S（依用途分組）與 api()
@@ -58,9 +59,13 @@ contract-editor/
 │               ├── shell/           各分頁共用的外框
 │               │   ├── topbar.js        頂端列：位置、成員頭像
 │               │   ├── nav.js           分頁導覽列（依分頁登錄產生）
-│               │   ├── page-header.js   頁首標題、說明、編輯契約名稱
-│               │   ├── name-prompt.js   第一次進入時填寫姓名與角色
-│               │   ├── actions.js       共用操作：換頁、交接（送審、送回、定稿、下一輪）、重試
+│               │   ├── flowbar.js       流程列：目前步驟、現在輪到誰要做什麼、主要按鈕（總覽以外每頁）
+│               │   ├── progress.js      流程計算：四個步驟、輪到誰、下一步（總覽與流程列共用）
+│               │   ├── page-header.js   頁首標題、說明、「這一頁要做的事」、編輯契約名稱
+│               │   ├── name-prompt.js   填寫或編輯姓名與角色
+│               │   ├── invite-share.js  共編連結與進入密碼：顯示、一鍵複製、重新產生
+│               │   ├── handoff-dialog.js 「交給他方」確認視窗（附連結與密碼）
+│               │   ├── actions.js       共用操作：換頁、交接（送回、定稿、下一輪）、重試
 │               │   └── notify.js        「複製通知內容」的通知文字
 │               └── tabs/            七個分頁，一個資料夾一頁；index.js 是分頁定義
 │                   ├── index.js         分頁登錄與分頁定義的格式（Tab）
@@ -70,18 +75,20 @@ contract-editor/
 │                   │                    locate.js 定位條文
 │                   ├── review/          審閱：view.js 一次一處、summary.js 修訂摘要、actions.js 接受／退回／全部接受
 │                   ├── history/         修訂紀錄：view.js 紀錄與篩選
-│                   ├── members/         成員與連結：view.js 名單與邀請
+│                   ├── members/         成員與連結：view.js 甲乙方兩張卡片（成員＋連結與密碼）與我的資料
 │                   ├── export/          匯出：view.js 格式選擇、export.js 產生 PDF／Word
 │                   └── import/          匯入：view.js 三種方式、previews.js 預覽與比對、import.js 讀檔與寫入
 ├── server/                      後端（Cloudflare Workers 執行環境）
 │   ├── router.js                /api/* 分派
 │   ├── http.js                  JSON 回應、錯誤、輸入檢查、上限
 │   ├── db.js                    資料表定義與自動建立／升級
-│   ├── auth.js                  連結金鑰（只存雜湊）、管理密碼比對
+│   ├── auth.js                  成員金鑰（只存雜湊）、管理密碼比對
+│   ├── invites.js               共編連結與進入密碼：加密保存、雜湊比對、錯誤次數鎖定
 │   ├── model.js                 讀取與輸出資料、甲乙方判定、修訂紀錄
 │   └── routes/
 │       ├── admin.js             契約列表、新增、改名、刪除（需管理密碼）
-│       ├── contract.js          契約狀態、成員、邀請、匯入、交接、圖片上傳
+│       ├── contract.js          契約狀態、成員、共編連結、匯入、交接、圖片上傳
+│       ├── join.js              以共編連結＋進入密碼加入契約
 │       ├── clauses.js           條文編輯、移動、刪除、接受、退回、整批匯回
 │       └── images.js            /img/* 讀取 R2 圖片
 ├── functions/                   Cloudflare Pages Functions 進入點（各一行）
@@ -142,13 +149,14 @@ export default {
 | 資料表 | 用途 | 主要欄位 |
 | --- | --- | --- |
 | `contracts` | 契約 | `title` 案名、`case_no` 案號、`version`（每次變更 +1，供輪詢）、`handoff`（目前輪到哪一方、第幾輪） |
-| `participants` | 成員與連結 | `key_hash` 連結金鑰雜湊、`role`（owner 建立者／party 成員）、`side`（A 甲方／B 乙方）、`name` 姓名、`title` 角色、`revoked` 已停用 |
+| `participants` | 成員 | `key_hash` 成員金鑰雜湊（加入後存在瀏覽器，下次自動登入）、`role`（owner 建立者／party 成員）、`side`（A 甲方／B 乙方）、`name` 姓名、`title` 角色、`revoked` 已停用 |
+| `invites` | 共編連結與進入密碼（每份契約每一方一組） | `side`、`token_hash` 連結代碼雜湊、`pin_hash` 密碼雜湊、`secret`（連結代碼與密碼，以 ADMIN_PASSWORD 衍生的金鑰 AES-GCM 加密，供再次顯示）、`fails` 密碼錯誤次數（達 10 次鎖定）、`revoked` 已重新產生 |
 | `clauses` | 條文 | `ord` 排序、`title`、`html`、`removed`、`rev`（樂觀鎖，避免同時修改互相覆蓋） |
 | `revisions` | 修訂紀錄 | `kind`（edit／add／move／delete）、`data`（修訂前後內容）、`by_id`、`status`（pending 待審閱／accepted 已接受／reverted 已退回／withdrawn 本方撤回）、`round` 輪次 |
 
 ## API
 
-所有路徑以 `/api` 開頭。契約 API 以 `Authorization: Bearer <連結金鑰>` 識別成員；管理 API 以 `x-admin-password` 驗證。
+所有路徑以 `/api` 開頭。契約 API 以 `Authorization: Bearer <成員金鑰>` 識別成員；管理 API 以 `x-admin-password` 驗證；加入 API 不需登入，以進入密碼驗證。
 
 | 方法 | 路徑 | 說明 |
 | --- | --- | --- |
@@ -161,8 +169,11 @@ export default {
 | POST | `/c/:id/me` | 設定本人姓名與角色 |
 | POST | `/c/:id/rename` | 修改契約名稱 |
 | POST | `/c/:id/seen` | 記錄已讀時間（他方新動態） |
-| POST | `/c/:id/invite` | 產生成員連結（擁有者可邀他方，各方可邀本方） |
-| POST | `/c/:id/participants/:pid/remove` | 停用連結 |
+| GET | `/c/:id/invites` | 共編連結與進入密碼（本方的；建立契約的一方另含他方的），沒有時自動產生 |
+| POST | `/c/:id/invites/:side/rotate` | 重新產生某一方的連結與密碼，舊的立即失效 |
+| POST | `/c/:id/participants/:pid/remove` | 停用成員 |
+| GET | `/join/:token` | 加入頁資訊：契約名稱、將加入的一方 |
+| POST | `/join/:token` | 以進入密碼、姓名、角色加入，回傳成員金鑰 |
 | POST | `/c/:id/import` | 匯入整份契約（Word） |
 | POST | `/c/:id/handoff` | 送交他方審閱／完成審閱 |
 | POST | `/c/:id/images` | 上傳圖片到 R2 |
@@ -176,6 +187,8 @@ export default {
 | GET | `/img/:contractId/:uuid` | 讀取圖片 |
 
 ## 主要流程
+
+**邀請與加入**：成員頁或「交給他方」視窗顯示該方的共編連結（`/j/<代碼>`）與 6 位數進入密碼 → 邀請方複製後傳給對方（建議連結與密碼分開傳送）→ 對方開啟連結，輸入密碼、姓名與角色 → 伺服器驗證密碼（錯誤 10 次即鎖定）後建立成員並回傳金鑰，存在對方瀏覽器，之後直接進入契約。
 
 **修訂與審閱**：任一方直接修改條文 → 後端寫入新內容並新增一筆 `pending` 修訂 → 他方畫面輪詢 `/version` 發現變更後重新取得 `/state` → 條文標示為「待您審閱」→ 他方任一成員接受（保留）或退回（還原修訂前內容）。審閱以「方」為單位，同一方的成員不能審閱本方的修訂。
 

@@ -16,6 +16,7 @@ export default {
   nav: { icon: "upload", label: "匯入", show: () => S.isAdmin || canEditDoc() },
   title: () => "匯入",
   lede: () => "以 Word 檔或範本更新契約內容；寫入前都會先預覽。",
+  tasks: () => ["選擇一種匯入方式", "確認預覽或比對結果", "按「確認匯入」或「送出修訂」寫入契約"],
   html: () => S.tplPick ? tplPickHtml() : S.importPreview ? importHtml() : S.reimport ? reimportHtml() : choicesHtml(),
   actions: {
     "reimport-pick": () => pickFile("rev-input"),

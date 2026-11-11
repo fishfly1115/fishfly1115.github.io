@@ -1,7 +1,8 @@
-// /api/c/:id/*：契約本身與成員。狀態、版本、個人資料、改名、邀請與停用連結、匯入整份契約、交接（輪到哪一方）、圖片上傳。
+// /api/c/:id/*：契約本身與成員。狀態、版本、個人資料、改名、共編連結與密碼、停用成員、匯入整份契約、交接（輪到哪一方）、圖片上傳。
 // 條文的修訂與審閱交給 routes/clauses.js。
 
-import { newKey, participant, sha256 } from "../auth.js";
+import { participant } from "../auth.js";
+import { currentInvite, rotateInvite } from "../invites.js";
 import { HANDOFF, HttpError, IMAGE_TYPES, MAX_HTML, MAX_IMAGE, MAX_TITLE, body, json, now, str, uid } from "../http.js";
 import { clauseOut, loadContract, partOut, revOut, sides, touch } from "../model.js";
 import { clauseRoutes } from "./clauses.js";
@@ -18,6 +19,12 @@ export async function contractRoutes(request, env, seg) {
   const needOwner = () => { if (!owner) throw new HttpError(403, "forbidden", "僅契約建立者可執行此操作"); };
 
   if (m === "GET" && action === "version") return json({ version: contract.version });
+  // 共編連結與進入密碼：可查看本方的；建立契約的一方另可查看他方的（用來邀請他方加入）
+  const ownerSide = team.side(team.list.find((p) => p.role === "owner") || me);
+  const inviteSides = mySide === ownerSide ? [mySide, mySide === "A" ? "B" : "A"] : [mySide];
+  if (m === "GET" && action === "invites") {
+    return json({ invites: await Promise.all(inviteSides.map((side) => currentInvite(env, cid, side))) });
+  }
   if (m === "GET" && action === "state") {
     const ps = team.list;
     const [{ results: cs }, { results: rs }] = await Promise.all([
@@ -66,16 +73,9 @@ export async function contractRoutes(request, env, seg) {
     await env.DB.prepare("UPDATE participants SET last_seen = ? WHERE id = ?").bind(now(), me.id).run();
     return json({ ok: true });
   }
-  if (action === "invite") {
-    // The creator may invite either side; everyone else adds colleagues to their own side.
-    const side = owner && (b.side === "A" || b.side === "B") ? b.side : mySide;
-    const label = str(b.label ?? "", 60, "單位").trim() || (side === mySide ? me.label || (side === "A" ? "機關（甲方）" : "廠商（乙方）") : (side === "A" ? "機關（甲方）" : "廠商（乙方）"));
-    const key = newKey();
-    await env.DB.batch([
-      env.DB.prepare("INSERT INTO participants (id, contract_id, key_hash, role, label, side, created_at) VALUES (?, ?, ?, 'party', ?, ?, ?)").bind(uid(), cid, await sha256(key), label, side, now()),
-      touch(env, { ...contract, handoff: { status: "x" } }, me)
-    ]);
-    return json({ key });
+  if (seg[2] === "invites" && seg[4] === "rotate") {
+    if (!inviteSides.includes(seg[3])) throw new HttpError(403, "forbidden", "無法重新產生這一方的連結");
+    return json({ invite: await rotateInvite(env, cid, seg[3]) });
   }
   if (seg[2] === "participants" && seg[4] === "remove") {
     const target = team.list.find((p) => p.id === seg[3]);

@@ -1,7 +1,9 @@
-// 契約頁的繪製：外框（頂端列、分頁導覽、頁首、姓名表單）＋目前分頁的內容。
+// 契約頁的繪製：外框（頂端列、分頁導覽、流程列、頁首、姓名表單、交接視窗）＋目前分頁的內容。
 // 分頁內容由 tabs/<代號>/index.js 的定義提供，見 tabs/index.js。
 import { $ } from "../../core/dom.js";
 import { S } from "./context.js";
+import { renderFlowbar } from "./shell/flowbar.js";
+import { renderDialog } from "./shell/handoff-dialog.js";
 import { renderNamePrompt } from "./shell/name-prompt.js";
 import { renderNav } from "./shell/nav.js";
 import { renderPageHeader } from "./shell/page-header.js";
@@ -15,9 +17,11 @@ export function render() {
   document.body.dataset.page = tab.id;
   renderTopbar();
   renderNav();
+  renderFlowbar();
   renderPageHeader(tab);
   renderNamePrompt();
   renderMain(tab);
+  renderDialog();
   syncChrome();
 }
 

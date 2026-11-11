@@ -7,7 +7,10 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS clauses (id TEXT PRIMARY KEY, contract_id TEXT NOT NULL, ord REAL NOT NULL, title TEXT NOT NULL, html TEXT NOT NULL, removed INTEGER NOT NULL DEFAULT 0, rev INTEGER NOT NULL DEFAULT 1, updated_by TEXT, updated_at INTEGER)`,
   `CREATE INDEX IF NOT EXISTS clauses_contract ON clauses(contract_id)`,
   `CREATE TABLE IF NOT EXISTS revisions (id TEXT PRIMARY KEY, contract_id TEXT NOT NULL, clause_id TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL, by_id TEXT NOT NULL, at INTEGER NOT NULL, status TEXT NOT NULL, round INTEGER NOT NULL, reviewed_by TEXT, reviewed_at INTEGER, note TEXT)`,
-  `CREATE INDEX IF NOT EXISTS revisions_contract ON revisions(contract_id, at)`
+  `CREATE INDEX IF NOT EXISTS revisions_contract ON revisions(contract_id, at)`,
+  // 共編連結與進入密碼（每份契約每一方一組，見 invites.js）
+  `CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, contract_id TEXT NOT NULL, side TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE, pin_hash TEXT NOT NULL, secret TEXT NOT NULL, fails INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS invites_contract ON invites(contract_id, side)`
 ];
 let ready = false;
 export async function init(db) {
