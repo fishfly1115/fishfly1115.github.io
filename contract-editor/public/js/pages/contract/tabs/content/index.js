@@ -1,4 +1,5 @@
 // 「契約內容」頁：條文目錄＋契約紙張；閱讀、勾選填寫、修訂、新增或調整條文。
+// 工具列有這一頁的主要按鈕（交給他方）、匯出，以及「更多」選單（匯入、修訂紀錄）。
 import { $ } from "../../../../core/dom.js";
 import { store } from "../../../../core/storage.js";
 import { S, ctx } from "../../context.js";
@@ -22,10 +23,10 @@ const editingKey = () => S.editing || (S.adding ? "new" : null);
 /** @type {import("../index.js").Tab} */
 export default {
   id: "content",
-  nav: { icon: "document", label: "契約內容" },
+  nav: { label: "契約內容" },
   title: () => "契約內容",
   lede: () => "直接勾選、填寫，或按「修訂」修改條文；每處修改都會留下紀錄，交由他方審閱。",
-  tasks: () => ["點 □ 勾選，點底線空格或日期直接填寫", "要改條文文字，按條文右上「修訂」", `全部改完，按上方「交給${SIDE[otherSide()]}」`],
+  tasks: () => ["點 □ 勾選，點底線空格或日期直接填寫", "要改條文文字，按條文右上「修訂」", `全部改完，按右上「交給${SIDE[otherSide()]}」`],
   html() {
     const key = editingKey();
     keptEditor = key ? document.getElementById("editor-" + key) : null;
@@ -60,6 +61,7 @@ export default {
     "review-go": (el, id) => { S.focusPending = id; go("review"); },
     goto: (el, id, ev) => { ev.preventDefault(); locate(id, { flash: false }); },
     "outline-toggle": () => { S.outlineOpen = !S.outlineOpen; render(); },
+    "more-toggle": () => { S.moreOpen = !S.moreOpen; render(); },
     "only-checked": (el) => {
       S.onlyChecked = el.dataset.v === "1";
       store.set("ce:only:" + ctx.CID, S.onlyChecked ? "1" : null);
@@ -80,7 +82,12 @@ export default {
       }
       if ($("pop") && !e.target.closest("#pop")) closePop();
       if (S.outlineOpen && !e.target.closest("#outline,[data-act=outline-toggle]")) { S.outlineOpen = false; render(); }
+      // 點選單外或選單項目都會收起「更多」選單（項目本身的操作仍會執行）
+      if (S.moreOpen && !e.target.closest("[data-act=more-toggle]")) { S.moreOpen = false; render(); }
     }, true);
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.outlineOpen) { S.outlineOpen = false; render(); } });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !(S.outlineOpen || S.moreOpen)) return;
+      S.outlineOpen = false; S.moreOpen = false; render();
+    });
   }
 };

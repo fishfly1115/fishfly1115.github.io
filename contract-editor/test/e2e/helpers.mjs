@@ -57,17 +57,38 @@ export async function setName(page, name, title) {
   await page.waitForSelector("#nameform", { state: "detached" });
 }
 
-// 切換契約頁的分頁（總覽、契約內容、審閱、修訂紀錄、成員、匯出、匯入）
+// 切換契約頁的分頁（總覽、契約內容、審閱、成員）；修訂紀錄與匯入在「契約內容」的「更多」選單
 export async function nav(page, view, ready) {
-  await page.click(`.pagenav [data-v=${view}]`);
+  if (view === "history" || view === "import") {
+    await nav(page, "content");
+    await more(page, `[data-v=${view}]`);
+  } else await page.click(`.pagenav [data-v=${view}]`);
   if (ready) await page.waitForSelector(ready);
 }
 
+// 開啟「契約內容」工具列的「更多」選單並點選其中一項
+export async function more(page, item) {
+  await page.click("[data-act=more-toggle]");
+  await page.click(`.menu ${item}`);
+}
 
-// 到「成員與連結」頁讀取某一方的共編連結與進入密碼（which：「本方」或「他方」）
+// 從「契約內容」頁開啟匯出視窗並選擇格式
+export async function openExport(page, fmt) {
+  await nav(page, "content", "[data-act=export-open]");
+  await page.click("#toolbar [data-act=export-open]");
+  await page.check(`.dialog input[name=efmt][value=${fmt}]`);
+}
+
+// 到「成員」頁讀取某一方的共編連結與進入密碼（which：「本方」或「他方」）
 export async function readShare(page, which) {
-  await nav(page, "members", ".share-box [data-share=pin]");
-  const card = page.locator(".side-card", { hasText: `（${which}）` });
+  await nav(page, "members", ".invite-card [data-share=pin]");
+  const showingMine = (await page.textContent(".invite-card h2")).includes("本方");
+  if (showingMine !== (which === "本方")) {
+    await page.click(".invite-card [data-act=share-side]");
+    await page.waitForFunction((m) => document.querySelector(".invite-card h2")?.textContent.includes("本方") === m, which === "本方");
+    await page.waitForSelector(".invite-card [data-share=pin]");
+  }
+  const card = page.locator(".invite-card");
   return {
     link: (await card.locator("[data-share=link]").textContent()).trim(),
     pin: (await card.locator("[data-share=pin]").textContent()).replace(/\s/g, "")

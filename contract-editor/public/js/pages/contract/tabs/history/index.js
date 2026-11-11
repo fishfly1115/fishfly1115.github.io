@@ -6,7 +6,7 @@ import { logHtml } from "./view.js";
 /** @type {import("../index.js").Tab} */
 export default {
   id: "history",
-  nav: { icon: "history", label: "修訂紀錄" },
+  parent: "content",
   title: () => "修訂紀錄",
   lede: () => "雙方所有修訂與審閱結果。",
   html: logHtml,

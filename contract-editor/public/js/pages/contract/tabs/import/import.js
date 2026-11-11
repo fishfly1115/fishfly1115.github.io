@@ -10,6 +10,12 @@ import { act } from "../../sync.js";
 import { readDocx } from "../../../../word/docx-import.js";
 import { go } from "../../router.js";
 
+// 讀檔完成：到「匯入」頁顯示預覽或比對結果（可從「契約內容」的「更多」選單直接選檔）
+function showPreview() {
+  if ((S.importPreview || S.reimport) && S.view !== "import") return go("import");
+  render(); window.scrollTo({ top: 0 });
+}
+
 export async function pickDocx(file) {
   if (!file) return;
   if (!/\.docx$/i.test(file.name)) {
@@ -21,9 +27,9 @@ export async function pickDocx(file) {
     const { html, imgFail } = await readDocx(file, uploadImage);
     const parsed = splitRich(html, file.name.replace(/\.docx$/i, ""));
     if (!parsed.clauses.length) toast("這個 Word 檔裡沒有讀到內容。");
-    else { S.importPreview = { ...parsed, source: file.name, imgFail }; S.view = "import"; }
+    else S.importPreview = { ...parsed, source: file.name, imgFail };
   } catch (e) { console.error(e); toast("讀不到這個 Word 檔，請確認它是未加密的 .docx 檔。"); }
-  S.importing = false; render(); window.scrollTo({ top: 0 });
+  S.importing = false; showPreview();
 }
 export async function doImport() {
   const p = S.importPreview; if (!p || S.importing) return;
@@ -40,9 +46,9 @@ export async function pickRevised(file) {
     const { html, imgFail } = await readDocx(file, uploadImage);
     const imported = splitByHeadings(html);
     if (!imported.length) toast("檔案中沒有可比對的條文");
-    else { S.reimport = { ...compareRevision(imported, live(), clauseHtmlOf), source: file.name, imgFail }; S.reimportAll = false; S.view = "import"; }
+    else { S.reimport = { ...compareRevision(imported, live(), clauseHtmlOf), source: file.name, imgFail }; S.reimportAll = false; }
   } catch (e) { console.error(e); toast("無法讀取此 Word 檔，請確認為未加密的 .docx 檔"); }
-  S.importing = false; render(); window.scrollTo({ top: 0 });
+  S.importing = false; showPreview();
 }
 export async function doReimport() {
   const R = S.reimport; if (!R || S.busy) return;

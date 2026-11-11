@@ -30,7 +30,7 @@ export const exportWord = (onlyChecked) => run(async () => {
     const fin = status() === "final";
     const blob = await toBlob({ title: docTitle(), caseNo: caseNo(), status: fin ? `定稿本（第 ${roundNo()} 輪）` : `契約草案（第 ${roundNo()} 輪）`, date: `列印日期：${rocToday()}` }, exportClauses(onlyChecked));
     saveBlob(fileName("docx"), blob);
-    toast("已匯出 Word；修訂後可由「匯入 → 匯入修訂版 Word」送回");
+    toast("已匯出 Word；修訂後可由「契約內容 → 更多 → 匯入修訂版 Word」送回");
   } catch (e) { console.error(e); toast("無法產生 Word 檔，請重新整理頁面後重試"); }
 });
 

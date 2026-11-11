@@ -3,8 +3,9 @@
  *
  * @typedef {object} Tab
  * @property {string} id                 分頁代號，與資料夾同名；網址見 router.js
- * @property {{icon: string, label: string, count?: () => number, tone?: string, show?: () => boolean}} nav
- *           導覽列：圖示（ui/icons.js）、名稱、數量徽章、是否顯示
+ * @property {{label: string, count?: () => number, tone?: string}} [nav]
+ *           導覽列的分頁按鈕：名稱、數量徽章。沒有 nav 的是子頁（見 parent）
+ * @property {string} [parent]            子頁所屬的分頁（導覽列標示該分頁，頁首顯示「返回」）
  * @property {() => string} title         頁首標題
  * @property {() => string} lede          頁首下方一句說明
  * @property {() => string[]} [tasks]     「這一頁要做的事」：2～3 個步驟
@@ -18,12 +19,11 @@
  * @property {() => void} [init]          啟動時執行一次（綁定此頁專用的全域事件）
  */
 import content from "./content/index.js";
-import exportTab from "./export/index.js";
 import history from "./history/index.js";
 import importTab from "./import/index.js";
 import members from "./members/index.js";
 import overview from "./overview/index.js";
 import review from "./review/index.js";
 
-/** 導覽列的順序即此順序 */
-export const TABS = { overview, content, review, history, members, export: exportTab, import: importTab };
+/** 導覽列只有四個分頁（順序即此順序）；修訂紀錄與匯入是「契約內容」的子頁，從「更多」選單進入 */
+export const TABS = { overview, content, review, members, history, import: importTab };

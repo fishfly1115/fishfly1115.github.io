@@ -1,7 +1,7 @@
 // 契約頁的事件：所有按鈕以 data-act 標示操作名稱，由這裡依名稱找到對應的處理函式（事件委派）。
-// 操作定義在各分頁（tabs/<代號>/index.js 的 actions）與共用操作（shell/actions.js）。
+// 操作定義在各分頁（tabs/<代號>/index.js 的 actions）、對話視窗（dialogs/）與共用操作（shell/actions.js）。
 import { sharedActions } from "./shell/actions.js";
-import { bindDialog } from "./shell/handoff-dialog.js";
+import { bindDialogs } from "./dialogs/index.js";
 import { poll } from "./sync.js";
 import { TABS } from "./tabs/index.js";
 
@@ -20,7 +20,7 @@ function collectActions() {
 export function bindEvents() {
   const actions = collectActions();
   for (const tab of Object.values(TABS)) tab.init?.();
-  bindDialog();
+  bindDialogs();
   document.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-act]");
     if (!el || el.disabled) return;

@@ -1,15 +1,19 @@
-// 頁首：各分頁的標題、一句說明與「這一頁要做的事」（由分頁定義提供）；總覽頁可編輯契約名稱與案號。
+// 頁首：各分頁的標題、一句說明與「這一頁要做的事」（由分頁定義提供）；子頁有「返回」連結；總覽頁可編輯契約名稱與案號。
 import { $, esc } from "../../../core/dom.js";
 import { icon } from "../../../ui/icons.js";
 import { S } from "../context.js";
 import { render } from "../render.js";
+import { pathOf } from "../router.js";
 import { caseNo, docTitle } from "../state.js";
 import { act } from "../sync.js";
+import { TABS } from "../tabs/index.js";
 
 /** @param {import("../tabs/index.js").Tab} tab */
 export function renderPageHeader(tab) {
   const ready = S.loaded.c && !S.noAccess;
   const title = ready ? tab.title() : "", lede = ready ? tab.lede() : "";
+  const parent = ready && tab.parent && TABS[tab.parent];
+  $("csource").innerHTML = parent ? `<a class="back" href="${pathOf(parent.id)}" data-act="nav" data-v="${parent.id}">${icon("chevronLeft", { size: 18 })}返回${parent.nav.label}</a>` : "";
   $("ctitle").hidden = !title && !S.renaming && ready;
   $("lede").hidden = !lede || S.renaming;
   $("lede").textContent = lede;

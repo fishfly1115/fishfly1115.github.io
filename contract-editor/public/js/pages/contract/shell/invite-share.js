@@ -1,4 +1,4 @@
-// 共編連結與進入密碼：載入、顯示（「成員與連結」頁與「交給他方」視窗共用）、一鍵複製、重新產生。
+// 共編連結與進入密碼：載入、顯示（「成員」頁與「交給他方」視窗共用）、一鍵複製、重新產生。
 // 每一方一組；本方的可邀請同仁，建立契約的一方另可看到他方的（用來請他方加入）。
 import { copy, esc, toast } from "../../../core/dom.js";
 import { icon } from "../../../ui/icons.js";
@@ -27,29 +27,29 @@ export function inviteMessage(side, kind) {
   return `${lead}\n共編連結：${joinUrl(inv)}\n進入密碼：${inv.pin}`;
 }
 
-/**
- * 連結與密碼區塊
- * @param {"A"|"B"} side
- * @param {{ title: string, note: string, kind: "join"|"handoff", rotatable?: boolean }} o
- */
-export function shareBoxHtml(side, { title, note, kind, rotatable = true }) {
-  if (!S.invites) return `<div class="share-box"><span class="skel" style="height:120px"></span></div>`;
+// 重新產生：先確認，舊的連結與密碼會立即失效
+export function rotateHtml(side) {
+  return S.confirmRotate === side
+    ? `<div class="rotate-confirm"><span>重新產生後，舊的連結與密碼立即失效。</span><button class="btn sm" data-act="rotate-cancel">取消</button><button class="btn sm danger" data-act="rotate-do" data-side="${side}">重新產生</button></div>`
+    : `<button class="linkbtn" data-act="rotate-open" data-side="${side}">重新產生連結與密碼</button>`;
+}
+
+// 共編連結與進入密碼兩列，各自旁邊有複製小圖示
+export function shareRowsHtml(side) {
+  if (!S.invites) return `<span class="skel" style="height:96px"></span>`;
   const inv = S.invites[side];
   if (!inv) return "";
-  const rotate = !rotatable ? "" : S.confirmRotate === side
-    ? `<div class="rotate-confirm"><span>重新產生後，舊的連結與密碼立即失效。</span><button class="btn sm" data-act="rotate-cancel">取消</button><button class="btn sm danger" data-act="rotate-do" data-side="${side}">重新產生</button></div>`
-    : `<button class="linkbtn" data-act="rotate-open" data-side="${side}">重新產生</button>`;
-  return `<section class="share-box" aria-label="${esc(title)}">
-    <div class="share-head"><h3>${esc(title)}</h3>${rotate}</div>
-    ${inv.locked ? `<div class="warnline">密碼錯誤次數過多，這組連結已鎖住，請按「重新產生」。</div>` : ""}
-    <div class="copy-row"><div><span class="copy-label">共編連結</span><code class="copy-value" data-share="link">${esc(joinUrl(inv))}</code></div>
-      <button class="btn" data-act="copy-link" data-side="${side}">${icon("copy", { size: 16 })}複製</button></div>
-    <div class="copy-row"><div><span class="copy-label">進入密碼</span><code class="copy-value pin" data-share="pin">${pinText(inv.pin)}</code></div>
-      <button class="btn" data-act="copy-pin" data-side="${side}">${icon("copy", { size: 16 })}複製</button></div>
-    <button class="btn primary block" data-act="copy-message" data-side="${side}" data-kind="${kind}">${icon("copy", { size: 18 })}一鍵複製邀請訊息（含連結與密碼）</button>
-    <p class="share-note">${esc(note)}</p>
-  </section>`;
+  const copyBtn = (act, label) => `<button class="btn icon ghost" data-act="${act}" data-side="${side}" aria-label="${label}" title="${label}">${icon("copy", { size: 18 })}</button>`;
+  return `${inv.locked ? `<div class="warnline">密碼錯誤次數過多，這組連結已鎖住，請重新產生。</div>` : ""}
+    <div class="copy-rows">
+      <div class="copy-row"><div><span class="copy-label">共編連結</span><code class="copy-value" data-share="link">${esc(joinUrl(inv))}</code></div>${copyBtn("copy-link", "複製共編連結")}</div>
+      <div class="copy-row"><div><span class="copy-label">進入密碼</span><code class="copy-value pin" data-share="pin">${pinText(inv.pin)}</code></div>${copyBtn("copy-pin", "複製進入密碼")}</div>
+    </div>`;
 }
+
+// 一鍵複製邀請訊息（含連結與密碼）
+export const copyMessageBtn = (side, kind, cls = "primary") =>
+  `<button class="btn ${cls}" data-act="copy-message" data-side="${side}" data-kind="${kind}">${icon("copy", { size: 18 })}一鍵複製邀請訊息</button>`;
 
 export const inviteActions = {
   "copy-link": (el) => copy(joinUrl(S.invites[el.dataset.side]), "已複製共編連結"),

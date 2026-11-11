@@ -8,7 +8,7 @@ import { reviewHtml } from "./view.js";
 /** @type {import("../index.js").Tab} */
 export default {
   id: "review",
-  nav: { icon: "review", label: "審閱", count: () => theirsClauses().length },
+  nav: { label: "審閱", count: () => theirsClauses().length },
   title: () => "審閱修訂",
   lede: () => `逐處確認${SIDE[otherSide()]}的修訂：接受即採用，退回即恢復原文。`,
   tasks: () => ["看「改了什麼」與條文全文", "同意按「接受」；不同意可填理由後按「退回」", `全部處理完，按「審閱完畢，送回${SIDE[otherSide()]}」`],

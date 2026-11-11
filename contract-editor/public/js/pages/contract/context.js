@@ -10,10 +10,10 @@ export const S = {
   loaded: { c: false, r: false, h: false }, slow: false, noAccess: null, canWrite: true, isAdmin: false, busy: false,
   // 畫面
   view: "overview", filter: "all", onlyChecked: false, plainView: new Set(), expanded: new Set(),
-  outlineOpen: false, focusPending: null, acceptAll: false, editing: null, editBase: null, adding: null, confirm: null, renaming: false,
+  outlineOpen: false, moreOpen: false, focusPending: null, acceptAll: false, editing: null, editBase: null, adding: null, confirm: null, renaming: false,
   nameOpen: false, forceMain: false, dialog: null, forceDialog: false,
   // 共編連結與進入密碼（shell/invite-share.js）
-  invites: null, confirmRotate: null,
+  invites: null, confirmRotate: null, shareSide: null,
   // 匯入與匯出
   importing: false, importPreview: null, reimport: null, reimportAll: false, tplPick: false, tpls: null,
   exporting: false, exportFmt: "pdf", exportOnlyChecked: true
