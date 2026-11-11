@@ -5,7 +5,7 @@
 //   ADMIN_PASSWORD=dev-password npm run test:e2e   改連已在執行的伺服器
 //
 // 流程：機關以範本建立契約 → 勾選、填日期、填空格（合併為一筆修訂）→ 僅顯示已勾選 →
-// 邀請廠商 → 廠商新增本方成員 → 廠商成員接受機關修訂 → 匯出 Word → 修改後匯回比對 →
+// 邀請廠商 → 廠商新增本方成員 → 廠商成員接受機關修訂 → 匯出 Word（視窗）→ 修改後由「更多」匯回比對 →
 // 機關看到待審閱修訂 → 匯出 PDF。
 //
 // 需要 Playwright 與 Chromium（`npm i -D playwright && npx playwright install chromium`）。
@@ -14,12 +14,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import JSZip from "jszip";
-import { PASSWORD, chromium, joinWith, nav, newPage, readShare, setName, startServer, step } from "./helpers.mjs";
+import { PASSWORD, chromium, joinWith, more, nav, newPage, openExport, readShare, setName, startServer, step } from "./helpers.mjs";
 
 const work = mkdtempSync(join(tmpdir(), "contract-e2e-"));
 
 async function download(page, file) {
-  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 90000 }), page.click("[data-act=export-go]")]);
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 90000 }), page.click(".dialog [data-act=export-go]")]);
   await dl.saveAs(file);
   return statSync(file).size;
 }
@@ -108,7 +108,7 @@ async function main() {
     assert.match(await vendor.textContent("#jerr"), /進入密碼不正確/);
     await joinWith(vendor, shareB, "林經理", "主管");
     const shareB2 = await readShare(vendor, "本方");
-    assert.equal(await vendor.locator(".side-card", { hasText: "（他方）" }).locator(".share-box").count(), 0, "乙方看不到甲方的連結");
+    assert.equal(await vendor.locator("[data-act=share-side]").count(), 0, "乙方看不到甲方的連結");
     const legal = await newPage(browser);
     await joinWith(legal, shareB2, "黃律師", "法務");
     step("廠商以連結＋密碼加入（密碼錯誤會被擋下），並邀請本方成員");
@@ -122,13 +122,13 @@ async function main() {
     step("廠商接受機關修訂");
 
     // 6. 廠商匯出 Word → 修改 → 匯回比對
-    await nav(legal, "export", "input[name=efmt]");
-    await legal.check("input[name=efmt][value=docx]");
+    await openExport(legal, "docx");
     const docxFile = join(work, "export.docx"), edited = join(work, "edited.docx");
     assert.ok(await download(legal, docxFile) > 5000);
     await editDocx(docxFile, edited);
-    await nav(legal, "import", ".choice");
-    await legal.setInputFiles("#rev-input", edited);
+    // 在「更多」選單選「匯入修訂版 Word」→ 選檔後自動到匯入頁顯示比對結果
+    const [chooser] = await Promise.all([legal.waitForEvent("filechooser"), more(legal, "[data-act=reimport-pick]")]);
+    await chooser.setFiles(edited);
     await legal.waitForSelector(".stats");
     const stats = (await legal.locator(".stats .pill").allTextContents()).join(" ");
     const changed = Number(stats.match(/修訂 (\d+)/)[1]);
@@ -150,7 +150,7 @@ async function main() {
     await owner2.waitForFunction((n) => document.querySelector(".rv-count")?.textContent.includes(`／${n} 處`), changed - 1);
     await nav(owner2, "content", "section.clause[data-state=theirs]");
     assert.equal(await owner2.locator("section.clause[data-state=theirs] [data-act=review-go]").count(), changed - 1);
-    await nav(owner2, "export", "input[name=efmt]");
+    await openExport(owner2, "pdf");
     const pdfFile = join(work, "export.pdf");
     assert.ok(await download(owner2, pdfFile) > 10000);
     assert.equal(readFileSync(pdfFile).subarray(0, 4).toString(), "%PDF");

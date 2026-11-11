@@ -54,7 +54,7 @@ export const newContractScreen = {
         store.set("ce:key:" + r.id, r.key);
         if (tpl?.clauses.length) {
           try { await contractApi({ cid: r.id, key: r.key })("import", { title, source: `範本：${tpl.name}`, clauses: tpl.clauses }); }
-          catch { toast("契約已建立，但範本套用失敗，請進入契約後到「匯入」頁套用範本"); }
+          catch { toast("契約已建立，但範本套用失敗，請進入契約後在「契約內容」的「更多」選單套用範本"); }
         }
         location.href = "/c/" + r.id;
         return;

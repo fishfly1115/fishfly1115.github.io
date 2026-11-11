@@ -3,7 +3,7 @@ import { $, toast } from "../../../../core/dom.js";
 import { loadTemplates } from "../../../../lib/templates.js";
 import { S } from "../../context.js";
 import { render } from "../../render.js";
-import { canEditDoc, docTitle } from "../../state.js";
+import { docTitle } from "../../state.js";
 import { doImport, doReimport, pickDocx, pickRevised } from "./import.js";
 import { importHtml, reimportHtml, tplPickHtml } from "./previews.js";
 import { choicesHtml } from "./view.js";
@@ -13,7 +13,7 @@ const pickFile = (id) => { $(id).value = ""; $(id).click(); };
 /** @type {import("../index.js").Tab} */
 export default {
   id: "import",
-  nav: { icon: "upload", label: "匯入", show: () => S.isAdmin || canEditDoc() },
+  parent: "content",
   title: () => "匯入",
   lede: () => "以 Word 檔或範本更新契約內容；寫入前都會先預覽。",
   tasks: () => ["選擇一種匯入方式", "確認預覽或比對結果", "按「確認匯入」或「送出修訂」寫入契約"],

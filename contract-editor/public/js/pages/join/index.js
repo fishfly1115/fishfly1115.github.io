@@ -11,7 +11,7 @@ import { ROLES } from "../../lib/roles.js";
 const SIDE = { A: "甲方", B: "乙方" };
 
 export async function startJoin(token) {
-  for (const id of ["tabs", "flowbar"]) $(id).hidden = true;
+  $("tabs").hidden = true;
   document.querySelector("header.top").hidden = true;
   $("brand").removeAttribute("href");
   const main = $("main");

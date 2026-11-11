@@ -8,7 +8,7 @@ import { overviewHtml } from "./view.js";
 /** @type {import("../index.js").Tab} */
 export default {
   id: "overview",
-  nav: { icon: "dashboard", label: "總覽" },
+  nav: { label: "總覽" },
   title: docTitle,
   lede: () => [caseNo() && `案號 ${caseNo()}`, `第 ${roundNo()} 輪`].filter(Boolean).join(" · "),
   renamable: true,
