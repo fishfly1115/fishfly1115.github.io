@@ -14,18 +14,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import JSZip from "jszip";
-import { PASSWORD, chromium, nav, newPage, setName, startServer, step } from "./helpers.mjs";
+import { PASSWORD, chromium, joinWith, nav, newPage, readShare, setName, startServer, step } from "./helpers.mjs";
 
 const work = mkdtempSync(join(tmpdir(), "contract-e2e-"));
-
-async function invite(page, side, label) {
-  await nav(page, "members", "#iside");
-  if (side) await page.selectOption("#iside", side);
-  if (label) await page.fill("#ilabel", label);
-  await page.click("#inviteform button[type=submit]");
-  await page.waitForSelector("main .warnline + .linkbox");
-  return (await page.textContent("main .warnline + .linkbox")).trim();
-}
 
 async function download(page, file) {
   const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 90000 }), page.click("[data-act=export-go]")]);
@@ -105,16 +96,22 @@ async function main() {
     await owner.click("[data-act=only-checked][data-v='0']");
     step("僅顯示已勾選");
 
-    // 4. 邀請廠商；廠商新增本方法務
-    const linkB = await invite(owner, "B", "廠商（乙方）○○生技股份有限公司");
+    // 4. 機關把乙方的共編連結＋進入密碼給廠商；廠商再邀請本方法務
+    const shareB = await readShare(owner, "他方");
+    assert.match(shareB.pin, /^\d{6}$/);
     const vendor = await newPage(browser);
-    await vendor.goto(linkB);
-    await setName(vendor, "林經理", "主管");
-    const linkB2 = await invite(vendor);
+    await vendor.goto(shareB.link);
+    await vendor.fill("#jpin", "000000");
+    await vendor.fill("#jname", "林經理");
+    await vendor.click("#joinform button[type=submit]");
+    await vendor.waitForSelector("#jerr:not([hidden])");
+    assert.match(await vendor.textContent("#jerr"), /進入密碼不正確/);
+    await joinWith(vendor, shareB, "林經理", "主管");
+    const shareB2 = await readShare(vendor, "本方");
+    assert.equal(await vendor.locator(".side-card", { hasText: "（他方）" }).locator(".share-box").count(), 0, "乙方看不到甲方的連結");
     const legal = await newPage(browser);
-    await legal.goto(linkB2);
-    await setName(legal, "黃律師", "法務");
-    step("廠商加入並新增本方成員");
+    await joinWith(legal, shareB2, "黃律師", "法務");
+    step("廠商以連結＋密碼加入（密碼錯誤會被擋下），並邀請本方成員");
 
     // 5. 廠商法務接受機關的修訂（審閱以「方」為單位）
     await nav(legal, "review", ".rv-card");

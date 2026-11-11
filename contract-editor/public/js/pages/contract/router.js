@@ -10,6 +10,7 @@
  */
 import { S, ctx } from "./context.js";
 import { render } from "./render.js";
+import { TABS } from "./tabs/index.js";
 
 // 分頁代號 → 網址片段（代號與 tabs/ 下的資料夾同名）
 const SLUGS = { overview: "", content: "contract", review: "review", history: "history", members: "members", export: "export", import: "import" };
@@ -25,9 +26,10 @@ export const pathOf = (view) => `/c/${ctx.CID}${SLUGS[view] ? "/" + SLUGS[view] 
 // 換頁：清掉上一頁的暫時狀態（選單、確認框、匯出設定），捲回頂端
 export function go(view, { replace = false } = {}) {
   if (!(view in SLUGS)) view = "overview";
-  Object.assign(S, { view, confirm: null, outlineOpen: false, acceptAll: false, invited: null });
+  Object.assign(S, { view, confirm: null, outlineOpen: false, acceptAll: false, confirmRotate: null });
   if (view !== "import") Object.assign(S, { importPreview: null, reimport: null, tplPick: false });
   history[replace ? "replaceState" : "pushState"](null, "", pathOf(view));
+  TABS[view]?.enter?.();
   render();
   window.scrollTo({ top: 0 });
 }

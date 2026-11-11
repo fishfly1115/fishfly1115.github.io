@@ -3,7 +3,7 @@ import { plainToHtml, sanitize } from "../../core/sanitize.js";
 import { S, ctx } from "./context.js";
 
 export const SIDE = { A: "甲方", B: "乙方" };
-export const ROLES = ["承辦人", "法務", "主管", "採購人員", "財務", "技術人員"];
+export { ROLES } from "../../lib/roles.js";
 export const pById = (id) => S.participants.find((x) => x.id === id);
 export const mySide = () => S.me?.side || "A";
 export const sideOfId = (id) => (pById(id) || (id === S.uid ? S.me : null))?.side || null;

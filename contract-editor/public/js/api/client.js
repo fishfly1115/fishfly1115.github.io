@@ -24,3 +24,8 @@ export function contractApi({ cid, key, admin }) {
 export function adminApi(password, path, method = "GET", body) {
   return request("/api/admin/" + path, { method, headers: { "x-admin-password": password }, body });
 }
+
+// 加入頁：以共編連結代碼查詢契約（GET）或送出進入密碼與姓名（POST），不需登入
+export function joinApi(token, body) {
+  return request(`/api/join/${encodeURIComponent(token)}`, { method: body === undefined ? "GET" : "POST", body });
+}

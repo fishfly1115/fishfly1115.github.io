@@ -11,7 +11,9 @@ export const S = {
   // 畫面
   view: "overview", filter: "all", onlyChecked: false, plainView: new Set(), expanded: new Set(),
   outlineOpen: false, focusPending: null, acceptAll: false, editing: null, editBase: null, adding: null, confirm: null, renaming: false,
-  nameOpen: false, invited: null, forcePeople: false, forceMain: false,
+  nameOpen: false, forceMain: false, dialog: null, forceDialog: false,
+  // 共編連結與進入密碼（shell/invite-share.js）
+  invites: null, confirmRotate: null,
   // 匯入與匯出
   importing: false, importPreview: null, reimport: null, reimportAll: false, tplPick: false, tpls: null,
   exporting: false, exportFmt: "pdf", exportOnlyChecked: true

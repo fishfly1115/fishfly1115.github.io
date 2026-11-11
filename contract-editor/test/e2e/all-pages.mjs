@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
-import { PASSWORD, chromium, nav, newPage, setName, startServer, step } from "./helpers.mjs";
+import { PASSWORD, chromium, joinWith, nav, newPage, readShare, setName, startServer, step } from "./helpers.mjs";
 
 const work = mkdtempSync(join(tmpdir(), "contract-e2e-pages-"));
 
@@ -94,15 +94,17 @@ async function main() {
     await nav(o, "history", ".filters");
     await o.click("[data-act=history-filter][data-v=mine]");
     await o.waitForSelector(".entry");
-    await nav(o, "members", "#iside");
-    await o.selectOption("#iside", "B");
-    await o.click("#inviteform button[type=submit]");
-    await o.waitForSelector("main .linkbox");
-    const link = (await o.textContent("main .linkbox")).trim();
+    const first = await readShare(o, "他方");
+    const card = o.locator(".side-card", { hasText: "（他方）" });
+    await card.locator("[data-act=rotate-open]").click();
+    await card.locator("[data-act=rotate-do]").click();
+    await o.waitForFunction((old) => !document.body.textContent.includes(old), first.link);
+    const share = await readShare(o, "他方");
+    assert.notEqual(share.link, first.link);
     await o.click("[data-act=name-edit]");
     await o.waitForSelector("#nameform");
     await o.click("[data-act=name-cancel]");
-    step("修訂紀錄篩選、產生他方連結、編輯個人資料");
+    step("修訂紀錄篩選、重新產生他方連結與密碼、編輯個人資料");
 
     // 總覽：改名、交接流程
     await nav(o, "overview", ".hero");
@@ -110,11 +112,15 @@ async function main() {
     await o.fill("#rtitle", "資助研究契約");
     await o.click("#renameform button[type=submit]");
     await o.waitForSelector(".crumb-title:text('資助研究契約')");
-    await o.click("[data-act=handoff-review]");
-    await o.waitForSelector("text=等待乙方審閱");
+    // 交給乙方：確認視窗顯示同一組連結與密碼
+    await nav(o, "content", ".clause");
+    await o.click(".flowbar [data-act=handoff-review]");
+    await o.waitForSelector(".dialog [data-share=pin]");
+    assert.equal((await o.textContent(".dialog [data-share=pin]")).replace(/\s/g, ""), share.pin);
+    await o.click("[data-act=handoff-confirm]");
+    await o.waitForSelector(".flowbar:has-text('等待乙方審閱')");
     const v = await newPage(browser, { width: 1440 });
-    await v.goto(link);
-    await setName(v, "林經理", "主管");
+    await joinWith(v, share, "林經理", "主管");
     await v.click(".hero [data-v=review]");
     await v.waitForSelector(".rv-card");
     await v.click("[data-act=accept-all]");
@@ -123,11 +129,11 @@ async function main() {
     await nav(v, "overview", ".hero");
     assert.match(await v.textContent(".hero h2"), /等待甲方確認/);
     await o.reload();
-    await o.waitForSelector(".hero");
+    await nav(o, "overview", ".hero");
     assert.match(await o.textContent(".hero h2"), /確認審閱結果/);
     await o.click("[data-act=final]");
     await o.waitForSelector("text=雙方已確認定稿");
-    step("總覽改名，送審 → 全部接受 → 送回 → 定稿");
+    step("總覽改名，交給乙方（視窗顯示連結與密碼）→ 乙方加入、全部接受 → 送回 → 定稿");
     await nav(o, "history", ".filters");
     await o.goBack();
     await o.waitForSelector(".hero");

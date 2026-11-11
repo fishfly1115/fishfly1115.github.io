@@ -7,8 +7,10 @@
  *           導覽列：圖示（ui/icons.js）、名稱、數量徽章、是否顯示
  * @property {() => string} title         頁首標題
  * @property {() => string} lede          頁首下方一句說明
+ * @property {() => string[]} [tasks]     「這一頁要做的事」：2～3 個步驟
  * @property {() => string} html          主要內容（HTML 字串）
  * @property {() => void} [after]         內容放進畫面後要做的事（綁定表單、側欄、工具列）
+ * @property {() => void} [enter]         切換到此頁時執行（例如重新載入資料）
  * @property {boolean} [keepTyping]       使用者正在此頁輸入時，背景更新不重繪（避免清掉輸入）
  * @property {boolean} [renamable]        頁首是否顯示「編輯名稱與案號」
  * @property {Record<string, (el: HTMLElement, id: string|undefined, ev: Event) => void>} [actions]
