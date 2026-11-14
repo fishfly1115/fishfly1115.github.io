@@ -76,12 +76,20 @@ async function main() {
     await clause.locator("[data-act=edit]").click();
     await o.locator(".editable").first().click();
     await o.keyboard.type("（測試修訂）");
+    // 預覽匯出版面：顯示尚未儲存的內容，版面寬度與 PDF 相同；切回編輯後內容仍在
+    await o.click(".ed-mode [data-mode=preview]");
+    await o.waitForSelector(".print-preview:not([hidden]) .print-page");
+    assert.match(await o.locator(".print-preview .rich").textContent(), /（測試修訂）/);
+    assert.equal(await o.locator(".print-preview .print-page").evaluate((el) => el.offsetWidth), 794);
+    assert.ok(await o.locator(".ed-pane").isHidden());
+    await o.click(".ed-mode [data-mode=edit]");
+    assert.match(await o.locator(".editable").first().textContent(), /（測試修訂）/);
     await o.click("[data-act=save]");
     await o.waitForSelector("section.clause[data-state=mine]");
     await o.locator("section.clause[data-state=mine] [data-act=revert-open]").click();
     await o.click("[data-act=revert-do]");
     await o.waitForSelector("section.clause[data-state=mine]", { state: "detached" });
-    step("修訂條文並撤回");
+    step("修訂條文、預覽匯出版面並撤回");
     await o.locator("section.clause").nth(3).hover();
     await o.locator("section.clause").nth(3).locator("[data-act=down]").click();
     await o.waitForTimeout(800);

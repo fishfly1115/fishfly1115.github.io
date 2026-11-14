@@ -300,3 +300,13 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
 .dialog-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
 .dialog .tplgrid { grid-template-columns: 1fr }
 @media (max-width: 640px) { .dialog { padding: 20px 18px } .side-cards { grid-template-columns: 1fr } }
+
+/* 修訂時的「預覽匯出版面」：白紙縮放到畫面寬度（版面規則在 print.css 的 .print-page） */
+.ed-mode { justify-self: start }
+.ed-pane[hidden], .print-preview[hidden] { display: none }
+.print-preview { display: grid; gap: 6px; min-width: 0 }
+.pp-fit { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 6px; background: #fff }
+.pp-scale { overflow: hidden }
+.pp-paper { box-sizing: border-box; background: #fff; transform-origin: top left }
+.pp-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.print-preview .hint { margin: 0 }
