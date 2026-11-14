@@ -1,7 +1,7 @@
 /* 契約頁：條文紙張、修訂標示、可填寫欄位、編輯器、修訂紀錄、匯入比對、分頁與進度列、總覽、審閱、成員、對話視窗。 */
 /* Sheet & clauses */
 .sheet { background: var(--sheet); border-radius: 6px; box-shadow: var(--shadow); margin-block: 14px 48px; padding: 8px clamp(16px, 5vw, 64px) 40px }
-.sheet-head { text-align: center; padding: 32px 0 12px; display: grid; gap: 4px }
+.sheet-head { text-align: center; padding: 24px 0 8px; display: grid; gap: 4px }
 .sheet-head h2 { margin: 0; font-family: var(--f-clause); font-size: 24px; font-weight: 700; letter-spacing: .06em; text-wrap: balance }
 .sheet-head h2 .btn { vertical-align: middle; letter-spacing: 0 }
 .sheet-head p { margin: 0; color: var(--muted); font-size: 12px }
@@ -148,41 +148,46 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 /* 待審閱的條文：淡黃底＋左側色條；定位中的條文加框 */
 .clause[data-state="theirs"] { background: color-mix(in srgb, var(--turn-bg) 45%, transparent); border-radius: 6px; padding-right: 12px }
 .clause.focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px }
-/* 分頁與進度列（頂端列下方，每頁都有）：左邊四個分頁按鈕，右邊四個步驟 */
-.pagenav { border-top: 1px solid var(--line) }
-.pagenav-in { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; padding: 12px max(24px, env(safe-area-inset-right, 0px)) 12px max(24px, env(safe-area-inset-left, 0px)) }
-.pn-tabs { display: flex; gap: 4px; padding: 4px; background: var(--paper); border-radius: 10px }
-.pn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 104px; padding: 8px 16px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; white-space: nowrap }
+/* 分頁與進度（在頂端列同一列）：分頁按鈕在左，步驟靠右；窄螢幕時換到第二列 */
+.pagenav { flex: 1 1 auto; min-width: 0 }
+.pagenav:not([hidden]) ~ .grow { display: none }
+.pagenav-in { display: flex; align-items: center; justify-content: space-between; gap: 8px 20px }
+.pn-tabs { display: flex; gap: 2px; padding: 3px; background: var(--paper); border-radius: 9px; flex: none }
+.pn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 84px; padding: 6px 14px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap }
 .pn:hover { color: var(--ink); background: var(--sheet) }
 .pn[aria-current="page"] { background: var(--accent); color: var(--accent-ink); font-weight: 700 }
 .pn .count { margin-left: 0 }
 .pn[aria-current="page"] .count { background: var(--accent-ink); color: var(--accent) }
-.fs { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px }
-.fs-step { display: inline-flex; align-items: center; gap: 10px; padding: 5px 14px 5px 5px; border-radius: 999px; border: 2px solid transparent }
-.fs-n { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; flex: none; background: var(--paper); color: var(--muted); box-shadow: inset 0 0 0 2px var(--line) }
-.fs-t { display: grid; line-height: 1.3 }
-.fs-t small { font-size: 11px; color: var(--muted) }
-.fs-t strong { font-size: 15px; font-weight: 500; color: var(--muted); white-space: nowrap }
+.fs { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 6px }
+.fs-step { display: inline-flex; align-items: center; gap: 7px; padding: 3px 12px 3px 3px; border-radius: 999px; border: 2px solid transparent }
+.fs-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; background: var(--paper); color: var(--muted); box-shadow: inset 0 0 0 2px var(--line) }
+.fs-t { font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap }
 .fs-step[data-state="done"] .fs-n { background: var(--ins-fg); color: var(--sheet); box-shadow: none }
-.fs-step[data-state="done"] small { color: var(--ins-fg) }
-.fs-step[data-state="done"] strong { color: var(--ink); font-weight: 700 }
+.fs-step[data-state="done"] .fs-t { color: var(--ink) }
 .fs-step[data-state="now"] { background: var(--accent-soft); border-color: var(--accent) }
 .fs-step[data-state="now"] .fs-n { background: var(--accent); color: var(--accent-ink); box-shadow: none }
-.fs-step[data-state="now"] small { color: var(--accent); font-weight: 700 }
-.fs-step[data-state="now"] strong { color: var(--ink); font-weight: 700 }
-.fs-line { width: 28px; height: 3px; border-radius: 2px; background: var(--line); flex: none }
+.fs-step[data-state="now"] .fs-t { color: var(--ink); font-weight: 700 }
+.fs-line { width: 18px; height: 3px; border-radius: 2px; background: var(--line); flex: none }
 .fs-line[data-done="true"] { background: var(--ins-fg) }
-/* 窄螢幕：分頁按鈕平均分配寬度；步驟只留圓點，目前這一步保留名稱 */
-@media (max-width: 1100px) { .fs-t small { display: none } .fs-line { width: 16px } }
-@media (max-width: 760px) {
-  .pagenav-in { padding-inline: 12px; gap: 10px }
-  .pn-tabs, .fs { flex: 1 1 100% }
-  .pn { flex: 1; min-width: 0; padding-inline: 6px; font-size: 14px }
-  .fs { justify-content: center }
-  .fs-step:not([data-state="now"]) .fs-t { display: none }
-  .fs-step:not([data-state="now"]) { padding-right: 5px }
-  .fs-n { width: 28px; height: 28px; font-size: 13px }
+/* 寬度不夠時：先隱藏品牌文字，再只留目前步驟的名稱 */
+@media (max-width: 1280px) { body:has(.pagenav:not([hidden])) .brand-name { display: none } }
+@media (max-width: 1120px) { .fs-step:not([data-state="now"]) .fs-t { display: none } .fs-step:not([data-state="now"]) { padding-right: 3px } }
+/* 窄螢幕：步驟放在第一列（品牌與主題切換之間），分頁按鈕換到第二列 */
+@media (max-width: 860px) {
+  .appbar-in { flex-wrap: wrap }
+  .pagenav:not([hidden]), .pagenav:not([hidden]) .pagenav-in { display: contents }
+  .fs { order: 1; flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px }
+  .fs-line { width: 8px }
+  .appbar-in .topact, .appbar-in .theme-btn { order: 2 }
+  .pn-tabs { order: 10; flex: 1 1 100% }
+  .pn { flex: 1; min-width: 0; padding-inline: 6px }
 }
+
+/* 契約內容頁：工具列固定在頂端列下方（手機不固定，避免佔掉畫面），文件區盡量大 */
+@media (min-width: 861px) { body[data-page="content"] header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 10px } }
+body[data-page="content"] header.top .pagebar { margin-top: 0 }
+body[data-page="content"] .sheet { margin-top: 4px }
+body[data-page="content"] .clause { scroll-margin-top: calc(var(--chrome, 57px) + var(--toolbar, 0px) + 12px) }
 
 /* 契約內容工具列右側：匯出、主要按鈕、更多（窄螢幕時一起換到下一列並靠右） */
 .pb-acts { display: flex; align-items: center; gap: 8px }

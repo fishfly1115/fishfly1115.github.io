@@ -1,4 +1,4 @@
-// 分頁與進度列（頂端列下方，每一頁都有）：左邊四個分頁按鈕，右邊四個步驟（已完成、目前在這一步、還沒到）。
+// 分頁與進度（在頂端列同一列，每一頁都有）：四個分頁按鈕，以及四個步驟（已完成、目前、還沒到）。
 // 只顯示位置與進度，不放操作按鈕；每一頁的主要按鈕在該頁內容裡。
 import { $ } from "../../../core/dom.js";
 import { icon } from "../../../ui/icons.js";
@@ -28,8 +28,7 @@ function stepsHtml() {
   const { now, list } = steps(), fin = status() === "final";
   return `<ol class="fs" aria-label="流程進度">${list.map((label, i) => {
     const state = fin || i < now ? "done" : i === now ? "now" : "next";
-    const sub = { done: "已完成", now: "目前在這一步", next: `第 ${i + 1} 步` }[state];
-    return `${i ? `<li class="fs-line" data-done="${fin || i <= now}" aria-hidden="true"></li>` : ""}<li class="fs-step" data-state="${state}" ${state === "now" ? `aria-current="step"` : ""}>
-      <span class="fs-n">${state === "done" ? icon("check", { size: 16 }) : i + 1}</span><span class="fs-t"><small>${sub}</small><strong>${label}</strong></span></li>`;
+    return `${i ? `<li class="fs-line" data-done="${fin || i <= now}" aria-hidden="true"></li>` : ""}<li class="fs-step" data-state="${state}" title="第 ${i + 1} 步：${label}" ${state === "now" ? `aria-current="step"` : ""}>
+      <span class="fs-n">${state === "done" ? icon("check", { size: 16 }) : i + 1}</span><span class="fs-t">${label}</span></li>`;
   }).join("")}</ol>`;
 }
