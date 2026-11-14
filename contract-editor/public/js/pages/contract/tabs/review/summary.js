@@ -25,5 +25,5 @@ export function summaryOf(c) {
 
 export function changesHtml(items, more) {
   if (!items.length) return `<p class="meta-s">格式或空白調整</p>`;
-  return `<ul class="chg">${items.map((x) => `<li>${x.ctx ? `<span class="chg-ctx">${esc(x.ctx)}</span>` : ""}${x.from ? `<del>${esc(x.from)}</del><span class="arrow">${icon("arrowForward", { size: 14, label: "改為" })}</span>` : ""}<ins>${esc(x.to || "（刪除）")}</ins></li>`).join("")}${more ? `<li class="meta-s">另有 ${more} 處，見條文</li>` : ""}</ul>`;
+  return `<ul class="chg">${items.map((x) => `<li>${x.ctx ? `<span class="chg-ctx">${esc(x.ctx)}</span>` : ""}${x.from ? `<del>${esc(x.from)}</del><span class="arrow">${icon("arrowForward", { size: 14, label: "改為" })}</span>` : ""}<ins>${esc(x.to || "（刪除）")}</ins></li>`).join("")}${more ? `<li class="meta-s">另有 ${more} 處</li>` : ""}</ul>`;
 }

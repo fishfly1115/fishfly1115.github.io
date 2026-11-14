@@ -1,11 +1,10 @@
 /* 契約頁：條文紙張、修訂標示、可填寫欄位、編輯器、修訂紀錄、匯入比對、分頁與進度列、總覽、審閱、成員、對話視窗。 */
 /* Sheet & clauses */
 .sheet { background: var(--sheet); border-radius: 6px; box-shadow: var(--shadow); margin-block: 14px 48px; padding: 8px clamp(16px, 5vw, 64px) 40px }
-.sheet-head { text-align: center; padding: 32px 0 12px; display: grid; gap: 4px }
+.sheet-head { text-align: center; padding: 24px 0 8px; display: grid; gap: 4px }
 .sheet-head h2 { margin: 0; font-family: var(--f-clause); font-size: 24px; font-weight: 700; letter-spacing: .06em; text-wrap: balance }
 .sheet-head h2 .btn { vertical-align: middle; letter-spacing: 0 }
 .sheet-head p { margin: 0; color: var(--muted); font-size: 12px }
-.fill-hint { margin: 0 0 4px; text-align: center; color: var(--muted); font-size: 12px }
 .clause { padding-block: 20px; border-bottom: 1px dashed var(--line); display: grid; gap: 8px; position: relative; min-width: 0 }
 .clause[data-state="theirs"] { box-shadow: inset 3px 0 0 var(--turn-fg); padding-left: 14px; margin-left: -14px }
 .clause[data-state="mine"] { box-shadow: inset 3px 0 0 var(--accent); padding-left: 14px; margin-left: -14px }
@@ -33,7 +32,7 @@ ins.d { background: var(--ins-bg); color: var(--ins-fg); text-decoration: underl
 del.d { background: var(--del-bg); color: var(--del-fg); text-decoration: line-through }
 del.d img { opacity: .5; outline: 2px solid var(--del-fg) }
 ins.d img { outline: 2px solid var(--ins-fg) }
-.legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
+.legend { display: flex; gap: 10px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
 
 /* Rich clause content (from Word or the editor) */
 .rich { font-family: var(--f-clause); font-size: 16px; line-height: 1.95; word-break: break-word; min-width: 0; overflow-x: auto }
@@ -149,41 +148,46 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 /* 待審閱的條文：淡黃底＋左側色條；定位中的條文加框 */
 .clause[data-state="theirs"] { background: color-mix(in srgb, var(--turn-bg) 45%, transparent); border-radius: 6px; padding-right: 12px }
 .clause.focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px }
-/* 分頁與進度列（頂端列下方，每頁都有）：左邊四個分頁按鈕，右邊四個步驟 */
-.pagenav { border-top: 1px solid var(--line) }
-.pagenav-in { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; padding: 12px max(24px, env(safe-area-inset-right, 0px)) 12px max(24px, env(safe-area-inset-left, 0px)) }
-.pn-tabs { display: flex; gap: 4px; padding: 4px; background: var(--paper); border-radius: 10px }
-.pn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 104px; padding: 8px 16px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; white-space: nowrap }
+/* 分頁與進度（在頂端列同一列）：分頁按鈕在左，步驟靠右；窄螢幕時換到第二列 */
+.pagenav { flex: 1 1 auto; min-width: 0 }
+.pagenav:not([hidden]) ~ .grow { display: none }
+.pagenav-in { display: flex; align-items: center; justify-content: space-between; gap: 8px 20px }
+.pn-tabs { display: flex; gap: 2px; padding: 3px; background: var(--paper); border-radius: 9px; flex: none }
+.pn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 84px; padding: 6px 14px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap }
 .pn:hover { color: var(--ink); background: var(--sheet) }
 .pn[aria-current="page"] { background: var(--accent); color: var(--accent-ink); font-weight: 700 }
 .pn .count { margin-left: 0 }
 .pn[aria-current="page"] .count { background: var(--accent-ink); color: var(--accent) }
-.fs { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px }
-.fs-step { display: inline-flex; align-items: center; gap: 10px; padding: 5px 14px 5px 5px; border-radius: 999px; border: 2px solid transparent }
-.fs-n { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; flex: none; background: var(--paper); color: var(--muted); box-shadow: inset 0 0 0 2px var(--line) }
-.fs-t { display: grid; line-height: 1.3 }
-.fs-t small { font-size: 11px; color: var(--muted) }
-.fs-t strong { font-size: 15px; font-weight: 500; color: var(--muted); white-space: nowrap }
+.fs { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 6px }
+.fs-step { display: inline-flex; align-items: center; gap: 7px; padding: 3px 12px 3px 3px; border-radius: 999px; border: 2px solid transparent }
+.fs-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; background: var(--paper); color: var(--muted); box-shadow: inset 0 0 0 2px var(--line) }
+.fs-t { font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap }
 .fs-step[data-state="done"] .fs-n { background: var(--ins-fg); color: var(--sheet); box-shadow: none }
-.fs-step[data-state="done"] small { color: var(--ins-fg) }
-.fs-step[data-state="done"] strong { color: var(--ink); font-weight: 700 }
+.fs-step[data-state="done"] .fs-t { color: var(--ink) }
 .fs-step[data-state="now"] { background: var(--accent-soft); border-color: var(--accent) }
 .fs-step[data-state="now"] .fs-n { background: var(--accent); color: var(--accent-ink); box-shadow: none }
-.fs-step[data-state="now"] small { color: var(--accent); font-weight: 700 }
-.fs-step[data-state="now"] strong { color: var(--ink); font-weight: 700 }
-.fs-line { width: 28px; height: 3px; border-radius: 2px; background: var(--line); flex: none }
+.fs-step[data-state="now"] .fs-t { color: var(--ink); font-weight: 700 }
+.fs-line { width: 18px; height: 3px; border-radius: 2px; background: var(--line); flex: none }
 .fs-line[data-done="true"] { background: var(--ins-fg) }
-/* 窄螢幕：分頁按鈕平均分配寬度；步驟只留圓點，目前這一步保留名稱 */
-@media (max-width: 1100px) { .fs-t small { display: none } .fs-line { width: 16px } }
-@media (max-width: 760px) {
-  .pagenav-in { padding-inline: 12px; gap: 10px }
-  .pn-tabs, .fs { flex: 1 1 100% }
-  .pn { flex: 1; min-width: 0; padding-inline: 6px; font-size: 14px }
-  .fs { justify-content: center }
-  .fs-step:not([data-state="now"]) .fs-t { display: none }
-  .fs-step:not([data-state="now"]) { padding-right: 5px }
-  .fs-n { width: 28px; height: 28px; font-size: 13px }
+/* 寬度不夠時：先隱藏品牌文字，再只留目前步驟的名稱 */
+@media (max-width: 1280px) { body:has(.pagenav:not([hidden])) .brand-name { display: none } }
+@media (max-width: 1120px) { .fs-step:not([data-state="now"]) .fs-t { display: none } .fs-step:not([data-state="now"]) { padding-right: 3px } }
+/* 窄螢幕：步驟放在第一列（品牌與主題切換之間），分頁按鈕換到第二列 */
+@media (max-width: 860px) {
+  .appbar-in { flex-wrap: wrap }
+  .pagenav:not([hidden]), .pagenav:not([hidden]) .pagenav-in { display: contents }
+  .fs { order: 1; flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px }
+  .fs-line { width: 8px }
+  .appbar-in .topact, .appbar-in .theme-btn { order: 2 }
+  .pn-tabs { order: 10; flex: 1 1 100% }
+  .pn { flex: 1; min-width: 0; padding-inline: 6px }
 }
+
+/* 契約內容頁：工具列固定在頂端列下方（手機不固定，避免佔掉畫面），文件區盡量大 */
+@media (min-width: 861px) { body[data-page="content"] header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 10px } }
+body[data-page="content"] header.top .pagebar { margin-top: 0 }
+body[data-page="content"] .sheet { margin-top: 4px }
+body[data-page="content"] .clause { scroll-margin-top: calc(var(--chrome, 57px) + var(--toolbar, 0px) + 12px) }
 
 /* 契約內容工具列右側：匯出、主要按鈕、更多（窄螢幕時一起換到下一列並靠右） */
 .pb-acts { display: flex; align-items: center; gap: 8px }
@@ -208,12 +212,9 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
 .hero h2 { margin: 0; font-size: 26px; line-height: 1.35; text-wrap: balance }
 .hero-kicker { margin: 0; font-size: 13px; font-weight: 700; color: var(--accent) }
 .hero[data-mine="1"] .hero-kicker { color: var(--turn-fg) }
-.hero-sub { margin: 0 0 8px; color: var(--muted) }
+.hero-sub { margin: 0; color: var(--muted) }
+.hero .actions { margin-top: 10px }
 .overview .news { margin-top: 0 }
-.facts { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
-.facts div { background: var(--sheet); border-radius: 10px; padding: 14px 18px; box-shadow: var(--shadow) }
-.facts dt { font-size: 12px; color: var(--muted) }
-.facts dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums }
 /* 審閱：一次一處 */
 .review-page { display: grid; gap: 14px; margin-block: 12px 48px }
 .rv-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
@@ -256,18 +257,9 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
   .hero .actions .btn, .rv-acts { flex: 1 1 auto }
   .rv-acts .btn { flex: 1 }
   .rv-card { padding: 18px }
-  .facts { gap: 8px }
-  .facts div { padding: 10px 12px }
   .pagebar .legend { display: none }
 }
 
-/* 這一頁要做的事 */
-#page-tasks:empty { display: none }
-.page-tasks { display: flex; gap: 8px 20px; align-items: center; flex-wrap: wrap; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-top: 10px }
-.page-tasks strong { color: var(--accent); font-size: 13px }
-.page-tasks ol { list-style: none; counter-reset: task; margin: 0; padding: 0; display: flex; gap: 8px 20px; flex-wrap: wrap }
-.page-tasks li { counter-increment: task; display: inline-flex; align-items: center; gap: 8px; font-size: 13px }
-.page-tasks li::before { content: counter(task); width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none }
 
 /* 成員：上方邀請卡（連結＋密碼＋一鍵複製）；下方甲乙方成員；最下方一列我的資料 */
 .members-page { display: grid; gap: 16px; margin-block: 12px 48px }
@@ -294,7 +286,6 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
 .copy-label { font-size: 11px; color: var(--muted) }
 .copy-value { font-family: var(--f-data); font-size: 13px; word-break: break-all; color: var(--ink) }
 .copy-value.pin { font-size: 20px; letter-spacing: .18em; font-weight: 500; white-space: nowrap }
-.share-note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6 }
 .my-info { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: 14px; padding: 4px 4px 0; color: var(--muted) }
 .my-info strong { color: var(--ink) }
 @media (max-width: 640px) { .copy-rows { grid-template-columns: 1fr } .card.invite-card { padding: 20px 18px } }

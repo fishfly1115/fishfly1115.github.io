@@ -1,13 +1,11 @@
-// 頂端列：品牌、目前位置（契約案件／契約名稱／案號）、成員頭像。分頁導覽列在 nav.js。
+// 頂端列：品牌、分頁與進度（pagenav.js，同一列）、成員頭像。契約名稱已在頁面與文件中，頂端列不重複。
 import { $, esc } from "../../../core/dom.js";
 import { S, ctx } from "../context.js";
-import { SIDE, caseNo, docTitle, mySide, whoFull } from "../state.js";
+import { SIDE, mySide, whoFull } from "../state.js";
 
 export function renderTopbar() {
-  const back = ctx.ADMIN ? `<a href="/" class="crumb">契約案件</a><span class="sep" aria-hidden="true">/</span>` : "";
-  $("crumb").innerHTML = S.loaded.c && !S.noAccess
-    ? `${back}<span class="crumb-title">${esc(docTitle())}</span>${caseNo() ? `<span class="crumb-case">${esc(caseNo())}</span>` : ""}`
-    : back;
+  // 載入前與無權限時才顯示「契約案件」連結；載入後由分頁按鈕取代（品牌標誌也可回到列表）
+  $("crumb").innerHTML = ctx.ADMIN && !(S.loaded.c && !S.noAccess) ? `<a href="/" class="crumb">契約案件</a>` : "";
   const el = $("turn");
   if (!S.loaded.c || S.noAccess) { el.innerHTML = ""; return; }
   const live = S.participants.filter((p) => !p.revoked);

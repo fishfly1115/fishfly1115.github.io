@@ -3,7 +3,7 @@
 import { fmt } from "../../../core/format.js";
 import { icon } from "../../../ui/icons.js";
 import { S } from "../context.js";
-import { SIDE, canEditDoc, mySide, otherSide, pendingForMe, roundNo, sameSide, sideOfId, status, whoFull } from "../state.js";
+import { SIDE, canEditDoc, mySide, otherSide, pendingForMe, roundNo, sameSide, sideOfId, status } from "../state.js";
 
 // 四個步驟的名稱（依交接紀錄推算由哪一方審閱、哪一方確認）與目前步驟
 export function steps() {
@@ -29,25 +29,25 @@ export function nextStep() {
   const byUs = by && sameSide(by), me = SIDE[mySide()], other = SIDE[otherSide()];
   const todo = pendingForMe().length;
   const ours = S.revs.filter((r) => r.status === "pending" && sameSide(r.by) && (r.round || 1) === n).length;
-  const mineWho = `現在輪到：您（${me}）`, otherWho = `現在輪到：${other}`;
+  const mineWho = `輪到您（${me}）`, otherWho = `輪到${other}`;
   const copy = `<button class="btn" data-act="copy">複製通知內容</button>`;
   const handoff = () => handoffBtn();
-  if (todo && st !== "final") return { mine: true, who: mineWho, title: `審閱${other}的 ${todo} 處修訂`, sub: "逐處接受或退回，完成後再送出。", primary: navBtn("review", `${icon("arrowForward", { size: 18 })}開始審閱`, "primary"), secondary: "" };
+  if (todo && st !== "final") return { mine: true, who: mineWho, title: `審閱${other}的 ${todo} 處修訂`, sub: "", primary: navBtn("review", `${icon("arrowForward", { size: 18 })}開始審閱`, "primary"), secondary: "" };
   if (st === "editing") {
-    if (ours) return { mine: true, who: mineWho, title: `本方已修訂 ${ours} 處，完成後按「交給${other}」`, sub: `交出後由${other}審閱；還要修改請到「契約內容」。`, primary: handoff(), secondary: navBtn("content", "前往契約內容") };
-    return { mine: true, who: `現在：雙方都可修訂`, title: `修訂契約內容，完成後按「交給${other}」`, sub: "直接勾選、填寫或修訂條文；每處修改都會留下紀錄。", primary: navBtn("content", `${icon("edit", { size: 18 })}前往契約內容`, "primary"), secondary: "" };
+    if (ours) return { mine: true, who: mineWho, title: `已修訂 ${ours} 處，可交給${other}`, sub: "", primary: handoff(), secondary: navBtn("content", "前往契約內容") };
+    return { mine: true, who: "雙方都可修訂", title: "修訂契約內容", sub: "", primary: navBtn("content", `${icon("edit", { size: 18 })}前往契約內容`, "primary"), secondary: "" };
   }
   if (st === "review") {
-    if (byUs) return { mine: false, who: otherWho, title: `等待${other}審閱`, sub: `第 ${n} 輪修訂已交給${other}，${other}審閱後會通知您。`, primary: "", secondary: copy };
-    return { mine: true, who: mineWho, title: `已審閱完畢，送回${other}`, sub: `${whoFull(by)}送出的修訂都已處理。`, primary: `<button class="btn primary" data-act="handoff-reviewed">審閱完畢，送回${other}</button>`, secondary: "" };
+    if (byUs) return { mine: false, who: otherWho, title: `等待${other}審閱`, sub: "", primary: "", secondary: copy };
+    return { mine: true, who: mineWho, title: `審閱完畢，送回${other}`, sub: "", primary: `<button class="btn primary" data-act="handoff-reviewed">審閱完畢，送回${other}</button>`, secondary: "" };
   }
   if (st === "reviewed") {
     const rs = S.revs.filter((r) => (r.round || 1) === n && !sameSide(r.by) === !!byUs);
     const ok = rs.filter((r) => r.status === "accepted").length, no = rs.filter((r) => r.status === "reverted").length;
-    if (byUs) return { mine: false, who: otherWho, title: `等待${other}確認結果`, sub: `本方接受 ${ok} 處、退回 ${no} 處。`, primary: "", secondary: copy };
-    return { mine: true, who: mineWho, title: "確認審閱結果：同意定稿，或開始下一輪修訂", sub: `${other}接受 ${ok} 處、退回 ${no} 處。`, primary: `<button class="btn good" data-act="final">同意定稿</button>`, secondary: `<button class="btn" data-act="next-round">開始下一輪修訂</button>` };
+    if (byUs) return { mine: false, who: otherWho, title: `等待${other}確認`, sub: `接受 ${ok} 處、退回 ${no} 處`, primary: "", secondary: copy };
+    return { mine: true, who: mineWho, title: "確認審閱結果", sub: `${other}接受 ${ok} 處、退回 ${no} 處`, primary: `<button class="btn good" data-act="final">同意定稿</button>`, secondary: `<button class="btn" data-act="next-round">開始下一輪修訂</button>` };
   }
-  return { mine: false, who: "已完成", title: "雙方已確認定稿，可以匯出定稿本", sub: `第 ${n} 輪定稿 · ${fmt(S.handoff?.at)}`, primary: `<button class="btn primary" data-act="export-open">${icon("download", { size: 18 })}匯出定稿本</button>`, secondary: `<button class="btn" data-act="next-round">重新開啟修訂</button>` };
+  return { mine: false, who: "已完成", title: "雙方已確認定稿", sub: `第 ${n} 輪 · ${fmt(S.handoff?.at)}`, primary: `<button class="btn primary" data-act="export-open">${icon("download", { size: 18 })}匯出定稿本</button>`, secondary: `<button class="btn" data-act="next-round">重新開啟修訂</button>` };
 }
 
 /**

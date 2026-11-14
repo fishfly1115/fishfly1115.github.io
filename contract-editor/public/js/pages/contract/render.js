@@ -29,7 +29,7 @@ function renderMain(tab) {
   $("outline").hidden = true;
   $("layout").classList.remove("with-outline");
   $("toolbar").innerHTML = "";
-  if (S.noAccess) { main.innerHTML = `<div class="card empty"><p>請向契約建立者索取您的專屬連結。契約建立者可以在「成員」頁產生。</p></div>`; return; }
+  if (S.noAccess) { main.innerHTML = `<div class="card empty"><p>請向契約建立者索取連結與密碼。</p></div>`; return; }
   if (!S.loaded.c) { main.innerHTML = loadingHtml(); return; }
   // 正在此頁輸入時（退回理由、邀請表單），背景更新不要清掉輸入內容
   const typing = main.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
@@ -43,8 +43,11 @@ const loadingHtml = () => `<div class="card page-card">${S.slow
   ? `<p class="empty">無法載入契約，請確認網路連線<br><button class="btn" data-act="retry">重試</button></p>`
   : `<div class="skel-block"><span class="skel" style="width:30%"></span><span class="skel"></span><span class="skel"></span><span class="skel" style="width:70%"></span></div>`}</div>`;
 
-// 頂端列＋導覽列的高度，供側欄固定位置與捲動定位使用
+// 頂端列（含分頁）的高度，供側欄、工具列固定位置與捲動定位使用
 function syncChrome() {
   const h = document.querySelector(".appbar")?.offsetHeight;
   if (h) document.documentElement.style.setProperty("--chrome", h + "px");
+  // 契約內容頁的工具列固定在頂端列下方；條文定位時要再讓出它的高度
+  const bar = document.body.dataset.page === "content" ? document.querySelector("header.top")?.offsetHeight || 0 : 0;
+  document.documentElement.style.setProperty("--toolbar", bar + "px");
 }

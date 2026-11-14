@@ -15,8 +15,7 @@ export function sheetHtml() {
   vis.forEach((c, i) => { body += clauseHtml(c, i, vis); if (S.adding?.afterId === c.id) body += slotNew; });
   if (S.adding && !vis.some((c) => c.id === S.adding.afterId)) body += slotNew;
   const addEnd = canEditDoc() && !S.adding && vis.length ? `<div class="addrow"><button class="btn sm ghost" data-act="add" data-after="${vis[vis.length - 1].id}">${icon("add", { size: 18 })}新增條文</button></div>` : "";
-  const hint = canEditDoc() && !S.onlyChecked && vis.some((c) => Fields.count(clauseHtmlOf(c))) ? `<p class="fill-hint">點選 □ 勾選；點選日期或底線空格直接填寫</p>` : "";
-  return `<article class="sheet">${sheetHead()}${hint}${body}${addEnd}</article>`;
+  return `<article class="sheet">${sheetHead()}${body}${addEnd}</article>`;
 }
 // 紙張頂端：契約名稱、案號、輪次與來源（建立者可編輯名稱）
 function sheetHead() {
@@ -57,12 +56,11 @@ export function clauseHtml(c, idx, vis) {
   let review = "";
   if (S.confirm?.id === c.id) {
     const k = S.confirm.kind;
-    const msg = k === "delete" ? "他方接受後才會刪除，在此之前條文以刪除線顯示"
-      : theirs.length ? "條文恢復為修訂前內容，紀錄會保留" : "條文恢復為修訂前內容";
+    const msg = k === "delete" ? "他方接受後才會刪除" : "恢復為修訂前內容";
     const label = k === "delete" ? "提議刪除此條？" : theirs.length ? "退回此條修訂？" : "撤回本方修訂？";
     const verb = k === "delete" ? "提議刪除" : theirs.length ? "退回" : "撤回";
     review = `<div class="confirm" data-kind="${k}"><label for="reason-${c.id}"><strong>${label}</strong>${msg}</label>
-      ${k === "delete" ? "" : `<input id="reason-${c.id}" class="inp" maxlength="500" placeholder="${theirs.length ? "退回理由（他方可見，選填）" : "撤回原因（選填）"}">`}
+      ${k === "delete" ? "" : `<input id="reason-${c.id}" class="inp" maxlength="500" placeholder="${theirs.length ? "退回理由（選填）" : "撤回原因（選填）"}">`}
       <div class="actions"><button class="btn" data-act="confirm-cancel">取消</button><button class="btn bad" data-act="${k === "delete" ? "delete-do" : "revert-do"}" data-id="${c.id}">${verb}</button></div></div>`;
   } else if (pend.length) {
     review = `<div class="review">

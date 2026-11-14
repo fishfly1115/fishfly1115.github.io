@@ -30,10 +30,8 @@ function doneHtml() {
   const other = SIDE[otherSide()];
   const canSend = status() === "review" && S.handoff?.by && !sameSide(S.handoff.by);
   return `<section class="hero" data-mine="${canSend ? 1 : 0}">
-    <p class="hero-kicker">審閱</p>
-    <h2>目前沒有待您審閱的修訂</h2>
-    <p class="hero-sub">${canSend ? `全部處理完畢，可以送回${other}確認結果。` : `${other}修訂條文後，會出現在這裡。`}</p>
-    <div class="actions">${canSend ? `<button class="btn primary lg" data-act="handoff-reviewed">審閱完畢，送回${other}</button>` : ""}<button class="btn" data-act="nav" data-v="overview">回到總覽</button></div>
+    <h2>沒有待您審閱的修訂</h2>
+        <div class="actions">${canSend ? `<button class="btn primary lg" data-act="handoff-reviewed">審閱完畢，送回${other}</button>` : ""}<button class="btn" data-act="nav" data-v="overview">回到總覽</button></div>
   </section>`;
 }
 
@@ -55,9 +53,9 @@ export function reviewHtml() {
     <article class="rv-card">
       <header class="rv-head"><div><h2>${esc(c.title)}</h2><p class="meta-s">${esc(whoFull(last.by))} · ${fmt(last.at)}</p></div><span class="pill mine">${esc(kind)}</span></header>
       <section><h3 class="rv-h">改了什麼</h3>${changesHtml(items, more)}</section>
-      <section><h3 class="rv-h">條文全文<span class="legend"><span><del class="d">刪除線</del> 刪除</span><span><ins class="d">底線</ins> 新增</span></span></h3><div class="rv-body">${bodyHtml(c)}</div></section>
+      <section><h3 class="rv-h">條文全文<span class="legend"><del class="d">刪除</del><ins class="d">新增</ins></span></h3><div class="rv-body">${bodyHtml(c)}</div></section>
       <footer class="rv-foot">
-        <label class="field grow"><span>退回理由（選填，他方可見）</span><input id="rv-reason" class="inp" maxlength="500" placeholder="例如：經費金額需依核定公文"></label>
+        <label class="field grow"><span>退回理由（選填）</span><input id="rv-reason" class="inp" maxlength="500"></label>
         <div class="rv-acts"><button class="btn bad lg" data-act="review-revert" data-id="${c.id}">退回</button><button class="btn good lg" data-act="review-accept" data-id="${c.id}">接受</button></div>
       </footer>
     </article>

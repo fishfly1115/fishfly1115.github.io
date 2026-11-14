@@ -25,20 +25,19 @@ export async function startJoin(token) {
     <h1>${esc(info.title)}</h1>
     ${info.caseNo ? `<p class="meta-s">案號 ${esc(info.caseNo)}</p>` : ""}
     <p class="join-side">您的身分：${SIDE[info.side]}</p>
-    ${info.locked ? `<div class="warnline">密碼錯誤次數過多，這組連結已鎖住。請向邀請方索取新的連結與密碼。</div>` : ""}
-    <div class="field"><label for="jpin">進入密碼（6 位數字）</label><input id="jpin" class="inp pin-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="○○○ ○○○" required></div>
+    ${info.locked ? `<div class="warnline">密碼錯誤太多次，已鎖住，請向邀請方索取新的連結與密碼</div>` : ""}
+    <div class="field"><label for="jpin">進入密碼</label><input id="jpin" class="inp pin-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="○○○ ○○○" required></div>
     <div class="field"><label for="jname">您的姓名</label><input id="jname" class="inp" maxlength="60" autocomplete="name" placeholder="例如：林小明" required></div>
-    <div class="field"><label for="jtitle">角色</label><input id="jtitle" class="inp" maxlength="30" list="jroles" placeholder="例如：主管、法務、承辦人"><datalist id="jroles">${ROLES.map((r) => `<option value="${r}">`).join("")}</datalist></div>
+    <div class="field"><label for="jtitle">角色</label><input id="jtitle" class="inp" maxlength="30" list="jroles" placeholder="例如：法務"><datalist id="jroles">${ROLES.map((r) => `<option value="${r}">`).join("")}</datalist></div>
     <p class="field-error" id="jerr" role="alert" hidden></p>
     <button class="btn primary block lg" type="submit" ${info.locked ? "disabled" : ""}>加入並開啟契約</button>
-    <p class="meta-s">密碼由邀請方另外提供。加入後，這台裝置下次會自動登入。</p>
-  </form>`;
+      </form>`;
   $("jpin").focus();
   $("joinform").addEventListener("submit", async (e) => {
     e.preventDefault();
     const pin = $("jpin").value.replace(/\s/g, ""), name = $("jname").value.trim(), err = $("jerr");
     err.hidden = true;
-    if (!/^\d{6}$/.test(pin)) { err.textContent = "請輸入 6 位數字的進入密碼"; err.hidden = false; $("jpin").focus(); return; }
+    if (!/^\d{6}$/.test(pin)) { err.textContent = "請輸入 6 位數字密碼"; err.hidden = false; $("jpin").focus(); return; }
     if (!name) { err.textContent = "請填寫您的姓名"; err.hidden = false; $("jname").focus(); return; }
     const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true; btn.textContent = "加入中…";

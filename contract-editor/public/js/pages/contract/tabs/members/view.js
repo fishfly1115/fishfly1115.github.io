@@ -21,15 +21,11 @@ const canRevoke = (p) => p.role !== "owner" && p.id !== S.uid && (S.isAdmin || p
 function inviteCard() {
   const side = shareSide(), mine = side === mySide(), name = SIDE[side];
   const title = mine ? "邀請本方同仁" : `請${name}加入`;
-  const note = mine
-    ? `同仁開啟連結、輸入密碼並填寫姓名後即可加入，屬於${name}，可以一起修訂；審閱以「方」為單位，本方任一人處理即可。`
-    : `${name}開啟連結、輸入密碼並填寫姓名後即可加入。按「交給${name}」時也會顯示這組連結與密碼。`;
   const swap = !canInviteOther() ? ""
     : mine ? `<button class="btn" data-act="share-side" data-v="${otherSide()}">改為邀請${SIDE[otherSide()]}</button>`
     : `<button class="btn" data-act="share-side" data-v="${mySide()}">邀請本方同仁</button>`;
   return `<section class="card invite-card" aria-label="${esc(title)}">
     <h2>${esc(title)}</h2>
-    <p class="share-note">${esc(note)}</p>
     ${shareRowsHtml(side)}
     <div class="actions">${S.invites?.[side] ? copyMessageBtn(side, "join") : ""}${swap}<div class="grow"></div>${S.invites?.[side] ? rotateHtml(side) : ""}</div>
   </section>`;

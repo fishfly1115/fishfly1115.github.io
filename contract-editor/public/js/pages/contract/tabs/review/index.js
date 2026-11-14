@@ -1,7 +1,7 @@
 // 「審閱」頁：一次一處他方修訂，接受或退回後自動前往下一處。
 import { S } from "../../context.js";
 import { render } from "../../render.js";
-import { SIDE, otherSide, theirsClauses } from "../../state.js";
+import { theirsClauses } from "../../state.js";
 import { acceptAll, decide } from "./actions.js";
 import { reviewHtml } from "./view.js";
 
@@ -9,9 +9,7 @@ import { reviewHtml } from "./view.js";
 export default {
   id: "review",
   nav: { label: "審閱", count: () => theirsClauses().length },
-  title: () => "審閱修訂",
-  lede: () => `逐處確認${SIDE[otherSide()]}的修訂：接受即採用，退回即恢復原文。`,
-  tasks: () => ["看「改了什麼」與條文全文", "同意按「接受」；不同意可填理由後按「退回」", `全部處理完，按「審閱完畢，送回${SIDE[otherSide()]}」`],
+  title: () => "", // 分頁按鈕已標示，不重複標題
   keepTyping: true,
   html: reviewHtml,
   actions: {

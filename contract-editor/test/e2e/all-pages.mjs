@@ -111,7 +111,7 @@ async function main() {
     await o.click("[data-act=rename-open]");
     await o.fill("#rtitle", "資助研究契約");
     await o.click("#renameform button[type=submit]");
-    await o.waitForSelector(".crumb-title:text('資助研究契約')");
+    await o.waitForSelector("#ctitle:has-text('資助研究契約')");
     // 交給乙方：確認視窗顯示同一組連結與密碼
     await nav(o, "content", ".clause");
     // 工具列只有一個主要按鈕（交給乙方）與一個次要按鈕（匯出），其他在「更多」
