@@ -1,6 +1,7 @@
 // 條文編輯器：格式工具列、表格列欄工具、貼上 Word 內容、插入圖片。
 import { esc, toast } from "../../../../core/dom.js";
-import { plainToHtml, sanitize } from "../../../../core/sanitize.js";
+import { normalize, plainToHtml, sanitize } from "../../../../core/sanitize.js";
+import { fitPreview, printPreview } from "./preview.js";
 import { uploadImage } from "../../sync.js";
 import { clauseHtmlOf } from "../../state.js";
 import { fail } from "../../sync.js";
@@ -24,7 +25,8 @@ export function editorEl(c) {
   box.innerHTML = `
     <label class="hint" for="et-${key}">${c ? "條文標題" : "新條文標題"}</label>
     <input id="et-${key}" maxlength="200" value="${esc(c ? c.title : "")}" placeholder="例如：第十條　其他約定">
-    <div>
+    <div class="seg ed-mode" role="group" aria-label="檢視方式"><button type="button" data-mode="edit" aria-pressed="true">編輯</button><button type="button" data-mode="preview" aria-pressed="false">預覽匯出版面</button></div>
+    <div class="ed-pane">
       <div class="toolbar" role="toolbar" aria-label="格式">
         <button type="button" data-cmd="bold" title="粗體" aria-label="粗體">${icon("bold")}</button>
         <button type="button" data-cmd="italic" title="斜體" aria-label="斜體">${icon("italic")}</button>
@@ -44,6 +46,7 @@ export function editorEl(c) {
       </div>
       <div class="editable rich" id="eb-${key}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="條文內容">${c ? clauseHtmlOf(c) : "<p><br></p>"}</div>
     </div>
+    <div class="print-preview" hidden></div>
     <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
     <div class="warn" id="ew-${key}" hidden></div>
     <div class="actions"><button class="btn primary" data-act="save" data-id="${key}">${c ? "儲存修訂" : "新增條文"}</button><button class="btn" data-act="cancel">取消</button></div>`;
@@ -67,6 +70,18 @@ export function editorEl(c) {
     document.execCommand("insertHTML", false, html ? sanitize(html.replace(/<!--[\s\S]*?-->/g, "")) : plainToHtml(text || ""));
   });
   fileIn.addEventListener("change", () => { if (fileIn.files[0]) insertImage(fileIn.files[0]); fileIn.value = ""; });
+  // 「編輯／預覽匯出版面」切換：預覽時隱藏編輯區（內容保留），顯示與 PDF 相同版面的紙張
+  const pane = box.querySelector(".ed-pane"), pv = box.querySelector(".print-preview"), title = box.querySelector(`#et-${key}`);
+  const onResize = () => { if (!box.isConnected) removeEventListener("resize", onResize); else if (!pv.hidden) fitPreview(pv); };
+  addEventListener("resize", onResize);
+  box.querySelector(".ed-mode").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-mode]"); if (!b) return;
+    const preview = b.dataset.mode === "preview";
+    box.querySelectorAll(".ed-mode button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    pane.hidden = preview; pv.hidden = !preview;
+    if (preview) printPreview(pv, title.value.trim() || (c ? c.title : "新條文"), normalize(ed.innerHTML));
+    else ed.focus();
+  });
   const tb = box.querySelector(".toolbar");
   tb.addEventListener("mousedown", (e) => e.preventDefault());
   tb.addEventListener("click", (e) => {
