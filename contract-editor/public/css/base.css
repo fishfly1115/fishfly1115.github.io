@@ -111,7 +111,6 @@ a.btn { text-decoration: none }
 .menu button { border: 0; background: none; text-align: left; padding: 8px 10px; border-radius: 6px; display: grid; gap: 2px }
 .menu button:hover, .menu button:focus-visible { background: var(--paper) }
 .menu button strong { font-size: 14px; font-weight: 500 }
-.menu button span { font-size: 12px; color: var(--muted) }
 .panel.export { flex: 1 1 100% }
 .check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px }
 .count.plain { background: var(--paper); color: var(--muted) }
@@ -184,7 +183,6 @@ select.inp { appearance: auto }
 .stat .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted) }
 .stat-n { font-size: 30px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums }
 .stat-n small { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 4px }
-.stat-sub { font-size: 12px; color: var(--muted) }
 .stat[data-tone="mine"] .dot { background: var(--turn-fg) } .stat[data-tone="mine"] .stat-label { color: var(--turn-fg) }
 .stat[data-tone="other"] .dot { background: var(--accent) }
 .stat[data-tone="final"] .dot { background: var(--ins-fg) }

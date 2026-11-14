@@ -19,13 +19,12 @@ export default {
   html() {
     const n = roundNo(), o = other();
     const ours = S.revs.filter((r) => r.status === "pending" && sameSide(r.by) && (r.round || 1) === n).length;
-    const sub = `<p class="dialog-sub">本輪您修訂了 ${ours} 處。交出後由${o}審閱，您仍可查看，但在${o}送回前請勿再修改。</p>`;
-    if (!canShare()) return `${sub}<p class="dialog-sub">交出後，可按「複製通知內容」通知${o}。</p>`;
-    return `${sub}<section class="share-box" aria-label="把以下兩項傳給${o}">
-      <h3>把以下兩項傳給${o}</h3>
+    const sub = `<p class="dialog-sub">本輪修訂 ${ours} 處，交出後由${o}審閱。</p>`;
+    if (!canShare()) return sub;
+    return `${sub}<section class="share-box" aria-label="傳給${o}">
+      <h3>傳給${o}</h3>
       ${shareRowsHtml(otherSide())}
       ${S.invites ? copyMessageBtn(otherSide(), "handoff", "") : ""}
-      <p class="share-note">建議分開傳送：連結以電子郵件寄出，密碼以電話或簡訊告知。${o}已加入的成員不需要再輸入密碼。連結與密碼之後也可在「成員」頁查看。</p>
     </section>`;
   },
   foot: () => `<div class="grow"></div><button class="btn ghost" data-act="dialog-close">取消</button><button class="btn primary" data-act="handoff-confirm">確認交給${esc(other())}</button>`,

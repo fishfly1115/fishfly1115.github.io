@@ -4,7 +4,7 @@ import { copy, esc, toast } from "../../../core/dom.js";
 import { icon } from "../../../ui/icons.js";
 import { S, api } from "../context.js";
 import { render } from "../render.js";
-import { SIDE, caseNo, docTitle, roundNo } from "../state.js";
+import { caseNo, docTitle, roundNo } from "../state.js";
 import { fail } from "../sync.js";
 
 export const joinUrl = (inv) => `${location.origin}/j/${inv.token}`;
@@ -30,7 +30,7 @@ export function inviteMessage(side, kind) {
 // 重新產生：先確認，舊的連結與密碼會立即失效
 export function rotateHtml(side) {
   return S.confirmRotate === side
-    ? `<div class="rotate-confirm"><span>重新產生後，舊的連結與密碼立即失效。</span><button class="btn sm" data-act="rotate-cancel">取消</button><button class="btn sm danger" data-act="rotate-do" data-side="${side}">重新產生</button></div>`
+    ? `<div class="rotate-confirm"><span>舊的連結與密碼會失效</span><button class="btn sm" data-act="rotate-cancel">取消</button><button class="btn sm danger" data-act="rotate-do" data-side="${side}">重新產生</button></div>`
     : `<button class="linkbtn" data-act="rotate-open" data-side="${side}">重新產生連結與密碼</button>`;
 }
 
@@ -40,7 +40,7 @@ export function shareRowsHtml(side) {
   const inv = S.invites[side];
   if (!inv) return "";
   const copyBtn = (act, label) => `<button class="btn icon ghost" data-act="${act}" data-side="${side}" aria-label="${label}" title="${label}">${icon("copy", { size: 18 })}</button>`;
-  return `${inv.locked ? `<div class="warnline">密碼錯誤次數過多，這組連結已鎖住，請重新產生。</div>` : ""}
+  return `${inv.locked ? `<div class="warnline">密碼錯誤太多次，已鎖住，請重新產生</div>` : ""}
     <div class="copy-rows">
       <div class="copy-row"><div><span class="copy-label">共編連結</span><code class="copy-value" data-share="link">${esc(joinUrl(inv))}</code></div>${copyBtn("copy-link", "複製共編連結")}</div>
       <div class="copy-row"><div><span class="copy-label">進入密碼</span><code class="copy-value pin" data-share="pin">${pinText(inv.pin)}</code></div>${copyBtn("copy-pin", "複製進入密碼")}</div>
@@ -54,14 +54,14 @@ export const copyMessageBtn = (side, kind, cls = "primary") =>
 export const inviteActions = {
   "copy-link": (el) => copy(joinUrl(S.invites[el.dataset.side]), "已複製共編連結"),
   "copy-pin": (el) => copy(S.invites[el.dataset.side].pin, "已複製進入密碼"),
-  "copy-message": (el) => copy(inviteMessage(el.dataset.side, el.dataset.kind), "已複製邀請訊息（含連結與密碼）"),
+  "copy-message": (el) => copy(inviteMessage(el.dataset.side, el.dataset.kind), "已複製邀請訊息"),
   "rotate-open": (el) => { S.confirmRotate = el.dataset.side; S.forceMain = true; render(); },
   "rotate-cancel": () => { S.confirmRotate = null; S.forceMain = true; render(); },
   "rotate-do": async (el) => {
     const side = el.dataset.side;
     try {
       S.invites[side] = (await api(`invites/${side}/rotate`, {})).invite;
-      toast(`已重新產生${SIDE[side]}的連結與密碼，舊的已失效`);
+      toast("已重新產生，舊的已失效");
     } catch (e) { fail(e); }
     S.confirmRotate = null; S.forceMain = true; render();
   }

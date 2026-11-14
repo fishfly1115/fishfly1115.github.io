@@ -15,11 +15,11 @@ export default {
     const open = S.revs.filter((r) => r.status === "pending").length;
     const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
     return `<div class="tplgrid">
-      ${option("pdf", "PDF 定稿本", "A4 直式，含案號、頁碼；未定稿時加註「草案」浮水印")}
-      ${option("docx", "Word（可編輯）", "在 Word 整份修訂後，可由「更多 → 匯入修訂版 Word」送回逐條比對")}
+      ${option("pdf", "PDF 定稿本", "含案號與頁碼")}
+      ${option("docx", "Word", "可修改後匯回")}
     </div>
     ${hasBoxes ? `<label class="check"><input type="checkbox" id="eonly" ${S.exportOnlyChecked ? "checked" : ""}> 僅保留已勾選的選項</label>` : ""}
-    ${open ? `<div class="warnline">尚有 ${open} 處修訂未審閱，匯出內容為目前條文（含未審閱的修訂）</div>` : ""}`;
+    ${open ? `<div class="warnline">尚有 ${open} 處修訂未審閱</div>` : ""}`;
   },
   foot: () => `<div class="grow"></div><button class="btn ghost" data-act="dialog-close">取消</button>
     <button class="btn primary" data-act="export-go" ${S.exporting ? "disabled" : ""}>${S.exporting ? "匯出中…" : S.exportFmt === "pdf" ? "匯出 PDF" : "匯出 Word"}</button>`,

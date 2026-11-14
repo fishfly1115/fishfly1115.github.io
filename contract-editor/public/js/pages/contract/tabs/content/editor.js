@@ -45,7 +45,6 @@ export function editorEl(c) {
       <div class="editable rich" id="eb-${key}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="條文內容">${c ? clauseHtmlOf(c) : "<p><br></p>"}</div>
     </div>
     <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-    <div class="hint">可直接貼上 Word 內容，格式會保留。儲存後他方會看到您改了哪裡，原文也會保留。</div>
     <div class="warn" id="ew-${key}" hidden></div>
     <div class="actions"><button class="btn primary" data-act="save" data-id="${key}">${c ? "儲存修訂" : "新增條文"}</button><button class="btn" data-act="cancel">取消</button></div>`;
   const ed = box.querySelector(".editable"), fileIn = box.querySelector("input[type=file]");

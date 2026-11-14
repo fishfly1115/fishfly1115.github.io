@@ -5,7 +5,6 @@
 .sheet-head h2 { margin: 0; font-family: var(--f-clause); font-size: 24px; font-weight: 700; letter-spacing: .06em; text-wrap: balance }
 .sheet-head h2 .btn { vertical-align: middle; letter-spacing: 0 }
 .sheet-head p { margin: 0; color: var(--muted); font-size: 12px }
-.fill-hint { margin: 0 0 4px; text-align: center; color: var(--muted); font-size: 12px }
 .clause { padding-block: 20px; border-bottom: 1px dashed var(--line); display: grid; gap: 8px; position: relative; min-width: 0 }
 .clause[data-state="theirs"] { box-shadow: inset 3px 0 0 var(--turn-fg); padding-left: 14px; margin-left: -14px }
 .clause[data-state="mine"] { box-shadow: inset 3px 0 0 var(--accent); padding-left: 14px; margin-left: -14px }
@@ -33,7 +32,7 @@ ins.d { background: var(--ins-bg); color: var(--ins-fg); text-decoration: underl
 del.d { background: var(--del-bg); color: var(--del-fg); text-decoration: line-through }
 del.d img { opacity: .5; outline: 2px solid var(--del-fg) }
 ins.d img { outline: 2px solid var(--ins-fg) }
-.legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
+.legend { display: flex; gap: 10px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
 
 /* Rich clause content (from Word or the editor) */
 .rich { font-family: var(--f-clause); font-size: 16px; line-height: 1.95; word-break: break-word; min-width: 0; overflow-x: auto }
@@ -208,12 +207,9 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
 .hero h2 { margin: 0; font-size: 26px; line-height: 1.35; text-wrap: balance }
 .hero-kicker { margin: 0; font-size: 13px; font-weight: 700; color: var(--accent) }
 .hero[data-mine="1"] .hero-kicker { color: var(--turn-fg) }
-.hero-sub { margin: 0 0 8px; color: var(--muted) }
+.hero-sub { margin: 0; color: var(--muted) }
+.hero .actions { margin-top: 10px }
 .overview .news { margin-top: 0 }
-.facts { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
-.facts div { background: var(--sheet); border-radius: 10px; padding: 14px 18px; box-shadow: var(--shadow) }
-.facts dt { font-size: 12px; color: var(--muted) }
-.facts dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums }
 /* 審閱：一次一處 */
 .review-page { display: grid; gap: 14px; margin-block: 12px 48px }
 .rv-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
@@ -256,18 +252,9 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
   .hero .actions .btn, .rv-acts { flex: 1 1 auto }
   .rv-acts .btn { flex: 1 }
   .rv-card { padding: 18px }
-  .facts { gap: 8px }
-  .facts div { padding: 10px 12px }
   .pagebar .legend { display: none }
 }
 
-/* 這一頁要做的事 */
-#page-tasks:empty { display: none }
-.page-tasks { display: flex; gap: 8px 20px; align-items: center; flex-wrap: wrap; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-top: 10px }
-.page-tasks strong { color: var(--accent); font-size: 13px }
-.page-tasks ol { list-style: none; counter-reset: task; margin: 0; padding: 0; display: flex; gap: 8px 20px; flex-wrap: wrap }
-.page-tasks li { counter-increment: task; display: inline-flex; align-items: center; gap: 8px; font-size: 13px }
-.page-tasks li::before { content: counter(task); width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none }
 
 /* 成員：上方邀請卡（連結＋密碼＋一鍵複製）；下方甲乙方成員；最下方一列我的資料 */
 .members-page { display: grid; gap: 16px; margin-block: 12px 48px }
@@ -294,7 +281,6 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
 .copy-label { font-size: 11px; color: var(--muted) }
 .copy-value { font-family: var(--f-data); font-size: 13px; word-break: break-all; color: var(--ink) }
 .copy-value.pin { font-size: 20px; letter-spacing: .18em; font-weight: 500; white-space: nowrap }
-.share-note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6 }
 .my-info { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: 14px; padding: 4px 4px 0; color: var(--muted) }
 .my-info strong { color: var(--ink) }
 @media (max-width: 640px) { .copy-rows { grid-template-columns: 1fr } .card.invite-card { padding: 20px 18px } }

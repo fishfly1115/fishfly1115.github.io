@@ -29,7 +29,7 @@ function renderMain(tab) {
   $("outline").hidden = true;
   $("layout").classList.remove("with-outline");
   $("toolbar").innerHTML = "";
-  if (S.noAccess) { main.innerHTML = `<div class="card empty"><p>請向契約建立者索取您的專屬連結。契約建立者可以在「成員」頁產生。</p></div>`; return; }
+  if (S.noAccess) { main.innerHTML = `<div class="card empty"><p>請向契約建立者索取連結與密碼。</p></div>`; return; }
   if (!S.loaded.c) { main.innerHTML = loadingHtml(); return; }
   // 正在此頁輸入時（退回理由、邀請表單），背景更新不要清掉輸入內容
   const typing = main.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);

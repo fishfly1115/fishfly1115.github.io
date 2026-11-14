@@ -6,9 +6,8 @@
  * @property {{label: string, count?: () => number, tone?: string}} [nav]
  *           導覽列的分頁按鈕：名稱、數量徽章。沒有 nav 的是子頁（見 parent）
  * @property {string} [parent]            子頁所屬的分頁（導覽列標示該分頁，頁首顯示「返回」）
- * @property {() => string} title         頁首標題
- * @property {() => string} lede          頁首下方一句說明
- * @property {() => string[]} [tasks]     「這一頁要做的事」：2～3 個步驟
+ * @property {() => string} title         頁首標題（空字串表示不顯示：分頁按鈕已標示所在頁）
+ * @property {() => string} [lede]        頁首下方一行資料（例如案號、輪次）
  * @property {() => string} html          主要內容（HTML 字串）
  * @property {() => void} [after]         內容放進畫面後要做的事（綁定表單、側欄、工具列）
  * @property {() => void} [enter]         切換到此頁時執行（例如重新載入資料）

@@ -8,7 +8,6 @@ export default {
   id: "history",
   parent: "content",
   title: () => "修訂紀錄",
-  lede: () => "雙方所有修訂與審閱結果。",
   html: logHtml,
   actions: {
     "history-filter": (el) => { S.filter = el.dataset.v; render(); },

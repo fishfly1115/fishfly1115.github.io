@@ -15,7 +15,7 @@ export function openPop(btn, cid, k) {
   pop.id = "pop"; pop.className = "pop"; pop.setAttribute("role", "dialog");
   if (inf.type === "date") {
     const y = inf.y ? (+inf.y < 1000 ? +inf.y + 1911 : +inf.y) : "", iso = y && inf.mo && inf.d ? `${y}-${pad2(inf.mo)}-${pad2(inf.d)}` : "";
-    pop.innerHTML = `<label for="pop-in">日期（存為民國年）</label><input id="pop-in" class="inp" type="date" value="${iso}">
+    pop.innerHTML = `<label for="pop-in">日期</label><input id="pop-in" class="inp" type="date" value="${iso}">
       <div class="row"><button class="btn sm ghost" data-pop="clear">清除</button><div class="grow"></div><button class="btn sm" data-pop="close">取消</button><button class="btn sm primary" data-pop="ok">套用</button></div>`;
   } else {
     const blank = /^[\s　_＿【】]*$/.test(inf.text || "");

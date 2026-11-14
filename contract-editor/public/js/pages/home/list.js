@@ -13,7 +13,7 @@ import { H, admin } from "./state.js";
 
 const SIDE = { A: "甲方", B: "乙方" };
 // 依「輪到誰」分組
-const BUCKETS = [["mine", "待您處理", "他方修訂待審閱、待確認結果"], ["other", "等待他方", "已送他方審閱或確認"], ["editing", "修訂中", "雙方仍在修訂"], ["final", "已定稿", "可匯出定稿本"]];
+const BUCKETS = [["mine", "待您處理"], ["other", "等待他方"], ["editing", "修訂中"], ["final", "已定稿"]];
 const STATUS = { editing: ["修訂中", "plain"], review: ["審閱中", "theirs"], reviewed: ["待確認", "mine"], final: ["已定稿", "ok"] };
 const turnOf = (c) => c.turn || (c.handoff?.status === "final" ? "none" : c.pendingCount ? "me" : "both");
 const bucketOf = (c) => ({ me: "mine", other: "other", both: "editing", none: "final" })[turnOf(c)];
@@ -29,11 +29,10 @@ function headerHtml() {
   const label = BUCKETS.find(([k]) => k === only)?.[1];
   return `
     <div class="home-head"><h1>契約案件</h1><div class="grow"></div><button class="btn primary" data-act="new">${icon("add", { size: 18 })}新增契約</button></div>
-    <div class="stats-grid" role="group" aria-label="依處理狀態篩選">${BUCKETS.map(([k, name, sub]) => `
+    <div class="stats-grid" role="group" aria-label="依處理狀態篩選">${BUCKETS.map(([k, name]) => `
       <button class="stat" data-act="filter" data-v="${only === k ? "all" : k}" data-tone="${k}" aria-pressed="${only === k}">
         <span class="stat-label"><span class="dot"></span>${name}</span>
-        <span class="stat-n">${count(k)}<small>件</small></span>
-        <span class="stat-sub">${sub}</span></button>`).join("")}</div>
+        <span class="stat-n">${count(k)}<small>件</small></span></button>`).join("")}</div>
     <div class="filterbar">${label ? `<span class="fchip">篩選：${label}<button data-act="clear-filter" aria-label="清除篩選">${icon("close", { size: 14 })}</button></span><button class="linkbtn" data-act="clear-filter">清除篩選</button>` : `<span class="meta-s">全部 ${list.length} 件</span>`}
       <div class="grow"></div>
       ${list.length > 4 ? `<input id="q" class="inp search" type="search" value="${esc(q)}" placeholder="搜尋契約名稱、案號或他方" aria-label="搜尋契約">` : ""}</div>`;
@@ -47,7 +46,7 @@ function rowHtml(c) {
       <div class="field" style="flex:0 1 200px"><label for="rc-${c.id}">案號</label><input id="rc-${c.id}" maxlength="100" value="${esc(c.caseNo || "")}"></div>
       <div class="row" style="align-self:end"><button class="btn" type="button" data-act="rename-cancel">取消</button><button class="btn primary" type="submit" ${H.busy ? "disabled" : ""}>儲存</button></div></form></td></tr>`;
   if (H.confirmDel === c.id) return `<tr class="editing danger"><td colspan="6"><div class="row">
-      <div class="grow"><strong>刪除「${esc(c.title)}」？</strong><div class="meta-s">條文、修訂紀錄與圖片都會刪除，無法復原</div></div>
+      <div class="grow"><strong>刪除「${esc(c.title)}」？</strong><div class="meta-s">無法復原</div></div>
       <button class="btn" data-act="del-cancel">取消</button><button class="btn danger" data-act="del-do" data-id="${c.id}">刪除</button></div></td></tr>`;
   return `<tr class="${turnOf(c) === "me" ? "my-turn" : ""}">
     <td class="c-title"><a class="t" href="/c/${c.id}">${esc(c.title)}</a><div class="meta-s">${c.caseNo ? `案號 ${esc(c.caseNo)} · ` : ""}${c.clauseCount ? `${c.clauseCount} 條` : "尚無條文"}</div></td>

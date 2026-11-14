@@ -20,10 +20,10 @@ export function newsHtml() {
   }
   if (decided.length) {
     const ok = decided.filter((r) => r.status === "accepted").length, no = decided.filter((r) => r.status === "reverted").length;
-    items.push(`本方修訂有結果了：${ok ? `接受 ${ok} 處` : ""}${ok && no ? "、" : ""}${no ? `退回 ${no} 處` : ""}`);
+    items.push(`本方修訂：${ok ? `接受 ${ok} 處` : ""}${ok && no ? "、" : ""}${no ? `退回 ${no} 處` : ""}`);
   }
   return `<section class="news" aria-label="自上次查看後的更新">
-    <div class="row"><h2>自您上次查看（${fmt(S.lastSeen) || "首次開啟"}）後</h2>
-    <div class="actions"><button class="btn sm" data-act="see-log">查看修訂紀錄</button><button class="btn sm" data-act="mark-seen">標為已讀</button></div></div>
+    <div class="row"><h2>最新動態</h2>
+    <div class="actions"><button class="btn sm" data-act="see-log">修訂紀錄</button><button class="btn sm" data-act="mark-seen">標為已讀</button></div></div>
     <ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul></section>`;
 }

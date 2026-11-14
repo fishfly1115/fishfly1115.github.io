@@ -13,7 +13,7 @@ export function renderToolbar() {
   const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
   const toggle = hasBoxes ? `<div class="seg" role="group" aria-label="選項顯示方式"><button data-act="only-checked" data-v="0" aria-pressed="${!S.onlyChecked}">全部選項</button><button data-act="only-checked" data-v="1" aria-pressed="${S.onlyChecked}">僅已勾選</button></div>` : "";
   const outlineBtn = S.clauses.length > 1 ? `<button class="btn only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}">${icon("toc", { size: 18 })}目錄</button>` : "";
-  const legend = has ? `<span class="legend"><span><del class="d">刪除線</del> 刪除的原文</span><span><ins class="d">底線</ins> 新增的文字</span></span>` : "";
+  const legend = has ? `<span class="legend"><del class="d">刪除</del><ins class="d">新增</ins></span>` : "";
   const primary = has ? contentPrimary() : "";
   // 定稿後主要按鈕就是「匯出定稿本」，不再重複次要的「匯出」
   const exportBtn = has && !primary.includes("export-open") ? `<button class="btn" data-act="export-open">${icon("download", { size: 18 })}匯出</button>` : "";
@@ -24,12 +24,12 @@ export function renderToolbar() {
 function moreMenu() {
   const vis = visible();
   const items = [
-    canEditDoc() && S.clauses.length && ["reimport-pick", "", "匯入修訂版 Word", "Word 修訂後匯回逐條比對"],
-    S.isAdmin && ["nav", "import", "套用範本／匯入新 Word", "以範本或新檔取代目前條文"],
-    canEditDoc() && vis.length && !S.adding && ["add", "", "新增條文", "加在最後一條之後"],
-    ["nav", "history", "修訂紀錄", "雙方所有修訂與審閱結果"]
+    canEditDoc() && S.clauses.length && ["reimport-pick", "", "匯入修訂版 Word"],
+    S.isAdmin && ["nav", "import", "套用範本／匯入新 Word"],
+    canEditDoc() && vis.length && !S.adding && ["add", "", "新增條文"],
+    ["nav", "history", "修訂紀錄"]
   ].filter(Boolean);
-  const menu = S.moreOpen ? `<div class="menu" role="menu">${items.map(([act, v, title, desc]) =>
-    `<button role="menuitem" data-act="${act}" ${v ? `data-v="${v}"` : ""} ${act === "add" ? `data-after="${vis[vis.length - 1].id}"` : ""}><strong>${title}</strong><span>${desc}</span></button>`).join("")}</div>` : "";
+  const menu = S.moreOpen ? `<div class="menu" role="menu">${items.map(([act, v, title]) =>
+    `<button role="menuitem" data-act="${act}" ${v ? `data-v="${v}"` : ""} ${act === "add" ? `data-after="${vis[vis.length - 1].id}"` : ""}><strong>${title}</strong></button>`).join("")}</div>` : "";
   return `<div class="menu-wrap"><button class="btn ghost" data-act="more-toggle" aria-haspopup="menu" aria-expanded="${S.moreOpen}">${icon("more", { size: 18 })}更多</button>${menu}</div>`;
 }
