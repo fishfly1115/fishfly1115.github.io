@@ -11,6 +11,7 @@
  * @property {() => string} html          主要內容（HTML 字串）
  * @property {() => void} [after]         內容放進畫面後要做的事（綁定表單、側欄、工具列）
  * @property {() => void} [enter]         切換到此頁時執行（例如重新載入資料）
+ * @property {() => void} [leave]         離開此頁前執行（例如儲存編輯中的內容）
  * @property {boolean} [keepTyping]       使用者正在此頁輸入時，背景更新不重繪（避免清掉輸入）
  * @property {boolean} [renamable]        頁首是否顯示「編輯名稱與案號」
  * @property {Record<string, (el: HTMLElement, id: string|undefined, ev: Event) => void>} [actions]

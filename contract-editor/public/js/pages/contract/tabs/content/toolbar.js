@@ -1,4 +1,4 @@
-// 「契約內容」頁的工具列：左邊是閱讀用的切換（目錄、選項顯示方式、標示說明）；
+// 「契約內容」頁的工具列（固定在頂端）：左邊是格式按鈕（像 Word，點進條文後可用），
 // 右邊是這一頁的操作：主要按鈕（交給他方等下一步）、次要按鈕「匯出」，其餘收進「⋯ 更多」選單。
 import { $ } from "../../../../core/dom.js";
 import { Fields } from "../../../../lib/fields.js";
@@ -7,29 +7,56 @@ import { S } from "../../context.js";
 import { contentPrimary } from "../../shell/progress.js";
 import { canEditDoc, visible } from "../../state.js";
 
+// 格式按鈕：[指令, 圖示, 名稱]；null 為分隔線；表格的增刪列欄收在「表格」選單
+const FORMAT = [
+  ["bold", "bold", "粗體"], ["italic", "italic", "斜體"], ["underline", "underline", "底線"], ["strikeThrough", "strike", "刪除線"],
+  null,
+  ["insertOrderedList", "listNumbered", "編號清單"], ["insertUnorderedList", "listBulleted", "項目清單"],
+  ["outdent", "outdent", "減少縮排"], ["indent", "indent", "增加縮排"],
+  null,
+  ["table-menu", "table", "表格"],
+  null,
+  ["image", "image", "插入圖片"], ["removeFormat", "clearFormat", "清除格式"]
+];
+
 export function renderToolbar() {
   const el = $("toolbar");
   const has = S.clauses.length > 0;
-  const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
-  const toggle = hasBoxes ? `<div class="seg" role="group" aria-label="選項顯示方式"><button data-act="only-checked" data-v="0" aria-pressed="${!S.onlyChecked}">全部選項</button><button data-act="only-checked" data-v="1" aria-pressed="${S.onlyChecked}">僅已勾選</button></div>` : "";
-  const outlineBtn = S.clauses.length > 1 ? `<button class="btn only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}">${icon("toc", { size: 18 })}目錄</button>` : "";
-  const legend = has ? `<span class="legend"><del class="d">刪除</del><ins class="d">新增</ins></span>` : "";
+  const outlineBtn = S.clauses.length > 1 ? `<button class="btn icon only-narrow" data-act="outline-toggle" aria-expanded="${S.outlineOpen}" aria-label="條文目錄" title="條文目錄">${icon("toc", { size: 18 })}</button>` : "";
   const primary = has ? contentPrimary() : "";
   // 定稿後主要按鈕就是「匯出定稿本」，不再重複次要的「匯出」
   const exportBtn = has && !primary.includes("export-open") ? `<button class="btn" data-act="export-open">${icon("download", { size: 18 })}匯出</button>` : "";
-  el.innerHTML = `${outlineBtn}${toggle}${legend}<div class="grow"></div><div class="pb-acts">${exportBtn}${primary}${moreMenu()}</div>`;
+  el.innerHTML = `${outlineBtn}${has && canEditDoc() ? ribbon() : ""}<div class="grow"></div><div class="pb-acts">${exportBtn}${primary}${moreMenu()}</div>`;
 }
 
-// 「⋯ 更多」：匯入修訂版 Word、套用範本或匯入新 Word、新增條文、修訂紀錄
+// 格式按鈕：點進條文後才能使用；旁邊顯示儲存狀態
+function ribbon() {
+  const off = !S.editing ? "disabled" : "";
+  const btns = FORMAT.map((b) => !b ? `<span class="rb-sep" aria-hidden="true"></span>`
+    : b[0] === "table-menu" ? tableMenu(off)
+    : `<button type="button" data-cmd="${b[0]}" title="${b[2]}" aria-label="${b[2]}" ${off}>${icon(b[1], { size: 18 })}</button>`).join("");
+  return `<div class="ribbon" role="toolbar" aria-label="格式">${btns}<span class="save-state" id="save-state" role="status">${S.editing ? "" : "點條文即可修訂"}</span></div>`;
+}
+
+// 表格：插入表格與增刪列欄收在同一個選單
+function tableMenu(off) {
+  const items = [["table", "插入表格"], ["row+", "在下方插入列"], ["row-", "刪除此列"], ["col+", "在右側插入欄"], ["col-", "刪除此欄"]];
+  return `<span class="menu-wrap"><button type="button" data-cmd="table-menu" title="表格" aria-label="表格" aria-haspopup="menu" aria-expanded="${!!S.tableMenu}" ${off}>${icon("table", { size: 18 })}${icon("dropDown", { size: 16 })}</button>
+    ${S.tableMenu && S.editing ? `<div class="menu" role="menu">${items.map(([cmd, t]) => `<button type="button" role="menuitem" data-cmd="${cmd}"><strong>${t}</strong></button>`).join("")}</div>` : ""}</span>`;
+}
+
+// 「⋯ 更多」：匯入修訂版 Word、套用範本或匯入新 Word、新增條文、修訂紀錄、只顯示已勾選
 function moreMenu() {
   const vis = visible();
+  const hasBoxes = S.clauses.some((c) => Fields.hasBoxes(c.html));
   const items = [
     canEditDoc() && S.clauses.length && ["reimport-pick", "", "匯入修訂版 Word"],
     S.isAdmin && ["nav", "import", "套用範本／匯入新 Word"],
-    canEditDoc() && vis.length && !S.adding && ["add", "", "新增條文"],
-    ["nav", "history", "修訂紀錄"]
+    canEditDoc() && vis.length && ["add", "", "新增條文"],
+    ["nav", "history", "修訂紀錄"],
+    hasBoxes && ["only-checked", "", "只顯示已勾選的選項", S.onlyChecked]
   ].filter(Boolean);
-  const menu = S.moreOpen ? `<div class="menu" role="menu">${items.map(([act, v, title]) =>
-    `<button role="menuitem" data-act="${act}" ${v ? `data-v="${v}"` : ""} ${act === "add" ? `data-after="${vis[vis.length - 1].id}"` : ""}><strong>${title}</strong></button>`).join("")}</div>` : "";
+  const menu = S.moreOpen ? `<div class="menu" role="menu">${items.map(([act, v, title, on]) =>
+    `<button role="${on === undefined ? "menuitem" : "menuitemcheckbox"}" data-act="${act}" ${v ? `data-v="${v}"` : ""} ${act === "add" ? `data-after="${vis[vis.length - 1].id}"` : ""} ${on === undefined ? "" : `aria-checked="${!!on}"`}><strong>${on ? "✓ " : ""}${title}</strong></button>`).join("")}</div>` : "";
   return `<div class="menu-wrap"><button class="btn ghost" data-act="more-toggle" aria-haspopup="menu" aria-expanded="${S.moreOpen}">${icon("more", { size: 18 })}更多</button>${menu}</div>`;
 }

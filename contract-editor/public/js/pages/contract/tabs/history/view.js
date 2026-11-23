@@ -13,7 +13,7 @@ export function logHtml() {
   if (f === "mine") list = list.filter((r) => sameSide(r.by));
   if (f === "accepted") list = list.filter((r) => r.status === "accepted");
   if (f === "reverted") list = list.filter((r) => r.status === "reverted" || r.status === "withdrawn");
-  const empty = { todo: "沒有待您審閱的修訂。", mine: "本方尚未修訂條文。", all: "還沒有任何修訂。到「契約內容」點「修訂」開始。", accepted: "還沒有被接受的修訂。", reverted: "沒有被退回或撤回的修訂。" }[f];
+  const empty = { todo: "沒有待您審閱的修訂。", mine: "本方尚未修訂條文。", all: "還沒有任何修訂。到「契約內容」點條文即可修訂。", accepted: "還沒有被接受的修訂。", reverted: "沒有被退回或撤回的修訂。" }[f];
   return `<div class="filters" role="group" aria-label="篩選">${filters.map(([k, l]) => `<button class="chip" aria-pressed="${f === k}" data-act="history-filter" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="log">${list.length ? list.map(entryHtml).join("") : `<p class="empty">${empty}</p>`}</div>`;
 }

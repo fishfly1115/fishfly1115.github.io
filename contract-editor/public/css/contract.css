@@ -50,16 +50,31 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .rich img { max-width: 100%; height: auto }
 .rich blockquote { margin: 0 0 .5em; padding-left: 1em; border-left: 3px solid var(--line) }
 
-/* Editor */
-.editor { display: grid; gap: 8px; min-width: 0 }
-.editor input { width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); padding: 8px 10px; font-family: var(--f-clause); font-weight: 700; font-size: 17px }
-.toolbar { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; background: var(--paper) }
-.toolbar button { border: 1px solid transparent; background: none; border-radius: 4px; padding: 3px 7px; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; min-height: 30px }
-.toolbar button:hover { border-color: var(--line); background: var(--sheet) }
-.editable { border: 1px solid var(--line); border-radius: 0 0 6px 6px; background: var(--sheet); padding: 10px 12px; min-height: 200px; outline: none }
-.editable:focus { border-color: var(--accent) }
-.editor .hint { font-size: 13px; color: var(--muted) }
-.editor .warn { font-size: 13px; color: var(--del-fg); background: var(--del-bg); padding: 8px 10px; border-radius: 6px }
+/* 直接修訂（像 Word）：可修訂的條文滑過時提示可點；編輯中的條文以淡色底標示 */
+.clause[data-editable] h3, .clause[data-editable] .rich { cursor: text }
+@media (hover: hover) { .clause[data-editable]:hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); border-radius: 6px } }
+.clause[data-state="edit"] { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); border-radius: 6px; box-shadow: inset 3px 0 0 var(--accent); padding-left: 14px; margin-left: -14px; padding-right: 12px }
+.ie { display: grid; gap: 8px; min-width: 0 }
+.ie-title { margin: 0; font-family: var(--f-clause); font-size: 18px; font-weight: 700; letter-spacing: .03em; outline: none }
+.ie-body { outline: none; min-height: 2em }
+.ie-warn { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--del-fg); background: var(--del-bg); padding: 8px 10px; border-radius: 6px }
+.ie-warn span { flex: 1 1 200px }
+
+/* 格式按鈕（工具列左側，像 Word 的功能區） */
+.ribbon { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; min-width: 0 }
+.ribbon button { border: 1px solid transparent; background: none; border-radius: 6px; padding: 4px 6px; min-height: 32px; min-width: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 1px; font-size: 12px; color: var(--ink) }
+.ribbon button:hover:not([disabled]) { background: var(--sheet); border-color: var(--line) }
+.ribbon button[disabled] { opacity: .35; cursor: default }
+.rb-sep { width: 1px; height: 20px; background: var(--line); margin-inline: 4px }
+.save-state { font-size: 12px; color: var(--muted); margin-left: 8px; white-space: nowrap }
+.ribbon .menu { left: 0; right: auto; min-width: 180px }
+.ribbon .menu button { display: block; min-height: 0; width: 100%; justify-content: flex-start }
+/* 手機編輯時：工具列只留格式按鈕（一列，可左右捲動），匯出等操作結束編輯後再出現 */
+@media (max-width: 640px) {
+  .ribbon .rb-sep, .ribbon [data-cmd="strikeThrough"], .ribbon [data-cmd="removeFormat"] { display: none }
+  body:has(.clause[data-state="edit"]) #toolbar .pb-acts, body:has(.clause[data-state="edit"]) #toolbar [data-act="outline-toggle"] { display: none !important }
+  body:has(.clause[data-state="edit"]) .ribbon { flex-wrap: nowrap; overflow-x: auto; flex: 1 1 100% }
+}
 
 /* History */
 .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px }
@@ -186,6 +201,8 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 /* 契約內容頁：工具列固定在頂端列下方（手機不固定，避免佔掉畫面），文件區盡量大 */
 @media (min-width: 861px) { body[data-page="content"] header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 10px } }
 body[data-page="content"] header.top .pagebar { margin-top: 0 }
+/* 手機：編輯條文時工具列（格式按鈕）也固定在上方 */
+@media (max-width: 860px) { body[data-page="content"]:has(.clause[data-state="edit"]) header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 8px } }
 body[data-page="content"] .sheet { margin-top: 4px }
 body[data-page="content"] .clause { scroll-margin-top: calc(var(--chrome, 57px) + var(--toolbar, 0px) + 12px) }
 

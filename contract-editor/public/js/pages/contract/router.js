@@ -26,6 +26,7 @@ export const pathOf = (view) => `/c/${ctx.CID}${SLUGS[view] ? "/" + SLUGS[view] 
 // 換頁：清掉上一頁的暫時狀態（選單、確認框、匯出設定），捲回頂端
 export function go(view, { replace = false } = {}) {
   if (!(view in SLUGS)) view = "overview";
+  if (view !== S.view) TABS[S.view]?.leave?.();
   Object.assign(S, { view, confirm: null, outlineOpen: false, moreOpen: false, acceptAll: false, confirmRotate: null, dialog: null });
   if (view !== "import") Object.assign(S, { importPreview: null, reimport: null, tplPick: false });
   history[replace ? "replaceState" : "pushState"](null, "", pathOf(view));
@@ -35,5 +36,5 @@ export function go(view, { replace = false } = {}) {
 }
 
 export function bindRouter() {
-  window.addEventListener("popstate", () => { S.view = viewFromPath(); S.confirm = null; render(); });
+  window.addEventListener("popstate", () => { TABS[S.view]?.leave?.(); S.view = viewFromPath(); S.confirm = null; render(); });
 }
