@@ -1,0 +1,59 @@
+/* 契約內容的紙張檢視：灰色桌面上一張張 A4 白紙（版面與 PDF 相同，見 print.css 的 .pf 與 lib/paginate.js），
+   右側為修訂註記欄。紙張尺寸、頁首頁尾位置由 paper.js 依 mm 換算後寫入。 */
+body[data-page="content"] .content > * { max-width: none }
+.desk { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding: 16px 8px 64px }
+.paper-wrap { position: relative; flex: none }
+.paper { position: absolute; left: 0; top: 0; transform-origin: 0 0 }
+.pages .page { position: absolute; left: 0; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 6px 18px rgba(0, 0, 0, .08) }
+.pg-head, .pg-foot { position: absolute; left: 0; right: 0; text-align: center; font-family: var(--f-body); font-size: 14.8px; color: #6e6e6e; line-height: 1 }
+.pg-mark { position: absolute; left: 50%; font-family: var(--f-body); font-size: 181px; color: #000; opacity: .06; transform: translate(-50%, -50%) rotate(-30deg); white-space: nowrap; pointer-events: none; line-height: 1 }
+.galley.pf { position: relative; background: transparent }
+.galley .pb { background: transparent }
+
+/* 條文在紙上：取消原本卡片式的間距與底色，只保留不影響排版的標示 */
+.pf .clause, .pf .clause[data-state], .pf .clause.added, .pf .clause.deleted { padding: 0 2px 22px; margin: 0; border: 0; box-shadow: none; border-radius: 0; display: block; gap: 0; background: transparent }
+.pf .clause .rich, .pf .clause.added .rich, .pf .clause.deleted .rich { padding: 0; background: none; border-radius: 0 }
+.pf .clause.added .rich, .pf .clause.added h3 { color: var(--ins-fg) }
+.pf .clause.focus { outline: 2px solid var(--accent); outline-offset: 6px }
+@media (hover: hover) { .pf .clause[data-editable]:hover { background: rgba(29, 79, 143, .04) } }
+.pf .clause[data-state="edit"] { background: rgba(29, 79, 143, .05) }
+.pf .ie { display: block }
+.pf .ie-title { margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: .03em; font-family: var(--f-clause) }
+.pf .ie-warn { font-family: var(--f-body); margin-top: 6px }
+
+/* 左側色條：藍＝本方修訂、橘＝他方修訂；點了看註記 */
+.cbar { position: absolute; left: -40px; top: 0; bottom: 22px; width: 22px; border: 0; padding: 0; background: none; cursor: pointer }
+.cbar::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 4px; border-radius: 2px; background: var(--accent) }
+.cbar[data-tone="theirs"]::before { background: #b7791f }
+
+/* 修訂註記欄（寬螢幕）：對齊條文上緣 */
+.notes { display: none }
+.desk.with-notes .notes { display: block; position: relative; width: 260px; flex: none; align-self: stretch }
+.note { position: absolute; left: 0; right: 0; background: var(--sheet); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; font-size: 13px; box-shadow: var(--shadow) }
+.note[data-tone="theirs"] { border-left-color: #b7791f }
+.note-who { font-weight: 700; display: flex; align-items: center; gap: 6px }
+.note-meta { color: var(--muted); font-size: 12px }
+.note-pills { display: flex; gap: 4px; flex-wrap: wrap }
+.note-pills:empty { display: none }
+.note-acts { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap }
+.note .confirm { padding: 8px; gap: 6px; font-size: 13px }
+.note .confirm label { display: grid; gap: 2px }
+@media (prefers-reduced-motion: no-preference) { .note.flash { animation: noteflash 1.2s ease-out } @keyframes noteflash { from { box-shadow: 0 0 0 4px var(--accent-soft) } } }
+
+/* 窄螢幕：點色條從下方開啟註記 */
+.note-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--sheet); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 30px rgba(0, 0, 0, .2); padding: 16px max(18px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: grid; gap: 8px; max-height: 60vh; overflow-y: auto; border-top: 3px solid var(--accent) }
+.note-sheet[data-tone="theirs"] { border-top-color: #b7791f }
+.note-sheet .note-x { position: absolute; right: 10px; top: 10px }
+.note-sheet-t { font-weight: 700; font-family: var(--f-clause); padding-right: 40px }
+.note-sheet .confirm { display: grid; gap: 8px }
+
+/* 縮放 */
+.zoom { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--sheet) }
+.zoom button { border: 0; background: none; min-height: 32px; min-width: 32px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); font-size: 13px; padding: 0 6px; border-radius: 7px }
+.zoom #zoom-label { min-width: 72px; font-variant-numeric: tabular-nums }
+.zoom button:hover { background: var(--paper) }
+.o-pg { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--f-data); flex: none }
+@media (max-width: 640px) { .desk { padding: 8px 4px 48px } .zoom #zoom-label { min-width: 0 } }
+/* 手機：還沒點進條文時不顯示格式按鈕，工具列少佔一列 */
+@media (max-width: 640px) { body[data-page="content"]:not(:has(.clause[data-state="edit"])) .ribbon { display: none } }
+.gaps .pg-gap { position: absolute; left: -60px; right: -60px; background: var(--paper); z-index: 2; pointer-events: none }

@@ -149,12 +149,17 @@ async function main() {
     await owner2.click("[data-act=review-accept]");
     await owner2.waitForFunction((n) => document.querySelector(".rv-count")?.textContent.includes(`／${n} 處`), changed - 1);
     await nav(owner2, "content", "section.clause[data-state=theirs]");
-    assert.equal(await owner2.locator("section.clause[data-state=theirs] [data-act=review-go]").count(), changed - 1);
+    assert.equal(await owner2.locator(".note[data-tone=theirs] [data-act=review-go]").count(), changed - 1);
+    // 紙張檢視：畫面上的頁數與匯出的 PDF 相同
+    const screenPages = await owner2.locator(".pages .page").count();
     await openExport(owner2, "pdf");
+    await owner2.uncheck(".dialog #eonly"); // 與畫面相同：保留全部選項
     const pdfFile = join(work, "export.pdf");
     assert.ok(await download(owner2, pdfFile) > 10000);
     assert.equal(readFileSync(pdfFile).subarray(0, 4).toString(), "%PDF");
-    step("機關在審閱頁逐處處理修訂並匯出 PDF");
+    const pdfPages = (readFileSync(pdfFile).toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
+    assert.equal(pdfPages, screenPages, `畫面 ${screenPages} 頁、PDF ${pdfPages} 頁`);
+    step(`機關在審閱頁逐處處理修訂並匯出 PDF（畫面與 PDF 都是 ${screenPages} 頁）`);
 
     console.log("\n全部通過");
   } finally {

@@ -5,6 +5,7 @@ import { Fields } from "../../../../lib/fields.js";
 import { icon } from "../../../../ui/icons.js";
 import { S } from "../../context.js";
 import { contentPrimary } from "../../shell/progress.js";
+import { zoomLabel } from "./paper.js";
 import { canEditDoc, visible } from "../../state.js";
 
 // 格式按鈕：[指令, 圖示, 名稱]；null 為分隔線；表格的增刪列欄收在「表格」選單
@@ -26,7 +27,8 @@ export function renderToolbar() {
   const primary = has ? contentPrimary() : "";
   // 定稿後主要按鈕就是「匯出定稿本」，不再重複次要的「匯出」
   const exportBtn = has && !primary.includes("export-open") ? `<button class="btn" data-act="export-open">${icon("download", { size: 18 })}匯出</button>` : "";
-  el.innerHTML = `${outlineBtn}${has && canEditDoc() ? ribbon() : ""}<div class="grow"></div><div class="pb-acts">${exportBtn}${primary}${moreMenu()}</div>`;
+  const zoom = has ? `<div class="zoom" role="group" aria-label="縮放"><button type="button" data-act="zoom-out" aria-label="縮小" title="縮小">${icon("remove", { size: 16 })}</button><button type="button" data-act="zoom-fit" id="zoom-label" title="符合頁寬">${zoomLabel()}</button><button type="button" data-act="zoom-in" aria-label="放大" title="放大">${icon("add", { size: 16 })}</button></div>` : "";
+  el.innerHTML = `${outlineBtn}${has && canEditDoc() ? ribbon() : ""}<div class="grow"></div>${zoom}<div class="pb-acts">${exportBtn}${primary}${moreMenu()}</div>`;
 }
 
 // 格式按鈕：點進條文後才能使用；旁邊顯示儲存狀態
@@ -35,7 +37,11 @@ function ribbon() {
   const btns = FORMAT.map((b) => !b ? `<span class="rb-sep" aria-hidden="true"></span>`
     : b[0] === "table-menu" ? tableMenu(off)
     : `<button type="button" data-cmd="${b[0]}" title="${b[2]}" aria-label="${b[2]}" ${off}>${icon(b[1], { size: 18 })}</button>`).join("");
-  return `<div class="ribbon" role="toolbar" aria-label="格式">${btns}<span class="save-state" id="save-state" role="status">${S.editing ? "" : "點條文即可修訂"}</span></div>`;
+  // 條文：上移、下移、在下方新增、提議刪除（作用在編輯中的條文）
+  const id = S.editing || "", vis = visible(), i = vis.findIndex((c) => c.id === id);
+  const tool = (act, ic, label, dis, extra = "") => `<button type="button" data-act="${act}" data-id="${id}" ${extra} title="${label}" aria-label="${label}" ${off || dis ? "disabled" : ""}>${icon(ic, { size: 18 })}</button>`;
+  const tools = `<span class="rb-sep" aria-hidden="true"></span>${tool("up", "arrowUp", "上移此條", i <= 0)}${tool("down", "arrowDown", "下移此條", i < 0 || i === vis.length - 1)}${tool("add", "add", "在下方新增條文", false, `data-after="${id}"`)}${tool("delete-open", "delete", "提議刪除此條", false)}`;
+  return `<div class="ribbon" role="toolbar" aria-label="格式">${btns}${tools}<span class="save-state" id="save-state" role="status">${S.editing ? "" : "點條文即可修訂"}</span></div>`;
 }
 
 // 表格：插入表格與增刪列欄收在同一個選單

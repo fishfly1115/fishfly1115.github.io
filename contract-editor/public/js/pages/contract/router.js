@@ -27,7 +27,7 @@ export const pathOf = (view) => `/c/${ctx.CID}${SLUGS[view] ? "/" + SLUGS[view] 
 export function go(view, { replace = false } = {}) {
   if (!(view in SLUGS)) view = "overview";
   if (view !== S.view) TABS[S.view]?.leave?.();
-  Object.assign(S, { view, confirm: null, outlineOpen: false, moreOpen: false, acceptAll: false, confirmRotate: null, dialog: null });
+  Object.assign(S, { view, confirm: null, noteOpen: null, outlineOpen: false, moreOpen: false, acceptAll: false, confirmRotate: null, dialog: null });
   if (view !== "import") Object.assign(S, { importPreview: null, reimport: null, tplPick: false });
   history[replace ? "replaceState" : "pushState"](null, "", pathOf(view));
   TABS[view]?.enter?.();
