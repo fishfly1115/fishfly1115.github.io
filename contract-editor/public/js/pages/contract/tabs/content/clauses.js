@@ -1,26 +1,31 @@
-// 「契約內容」頁的契約紙張：每條的修訂標示、可直接填寫的欄位、條文工具；點條文即可直接修訂（inline-editor.js）。
-// 他方修訂改到「審閱」頁處理。
+// 「契約內容」頁的紙張檢視：條文排在 A4 紙上（與 PDF 同一套排版 .pf，分頁見 paper.js），
+// 紙上只留修訂標示（刪除線、底線）與左側色條；修訂人、撤回、前往審閱等放在紙張右側的註記欄（窄螢幕改為點色條從下方開啟）。
+// 點條文即可直接修訂（inline-editor.js）；他方修訂到「審閱」頁處理。
 import { diffHtml, diffText } from "../../../../core/diff.js";
 import { esc } from "../../../../core/dom.js";
 import { fmt } from "../../../../core/format.js";
 import { Fields } from "../../../../lib/fields.js";
-import { S } from "../../context.js";
-import { FIELD_LABELS, KIND, SIDE, canEditDoc, caseNo, clauseHtmlOf, docTitle, isNew, mySide, pendingOf, revHtml, roundNo, sameSide, visible, whoFull } from "../../state.js";
+import { headHtml } from "../../../../lib/paginate.js";
 import { icon } from "../../../../ui/icons.js";
+import { S } from "../../context.js";
+import { FIELD_LABELS, KIND, SIDE, canEditDoc, caseNo, clauseHtmlOf, docTitle, isNew, mySide, pendingOf, revHtml, roundNo, sameSide, status, visible, whoFull } from "../../state.js";
 
-export function sheetHtml() {
+export function paperHtml() {
   const vis = visible();
   if (!vis.length) return `<div class="sheet"><div class="empty"><p>尚無條文</p><div class="row" style="justify-content:center">${S.isAdmin ? `<button class="btn primary" data-act="nav" data-v="import">匯入 Word 或套用範本</button>` : ""}<button class="btn" data-act="add" data-after="">新增條文</button></div></div></div>`;
-  const body = vis.map((c, i) => clauseHtml(c, i, vis)).join("");
-  const addEnd = canEditDoc() && vis.length ? `<div class="addrow"><button class="btn sm ghost" data-act="add" data-after="${vis[vis.length - 1].id}">${icon("add", { size: 18 })}新增條文</button></div>` : "";
-  return `<article class="sheet">${sheetHead()}${body}${addEnd}</article>`;
+  const head = headHtml({ title: docTitle(), caseNo: caseNo(), final: status() === "final", round: roundNo() });
+  const sheetFor = S.noteOpen && vis.find((c) => c.id === S.noteOpen);
+  return `<div class="desk" id="desk">
+    <div class="paper-wrap" id="paper-wrap"><div class="paper" id="paper">
+      <div class="pages" id="pages" aria-hidden="true"></div>
+      <div class="pf galley" id="galley">${head}${vis.map(clauseHtml).join("")}</div>
+      <div class="gaps" id="gaps" aria-hidden="true"></div>
+    </div></div>
+    <aside class="notes" id="notes" aria-label="修訂註記">${vis.map((c) => { const b = noteBody(c); return b ? `<div class="note" data-for="${c.id}" data-tone="${toneOf(c)}">${b}</div>` : ""; }).join("")}</aside>
+  </div>
+  ${sheetFor ? `<div class="note-sheet" id="note-sheet" role="dialog" aria-label="修訂註記" data-tone="${toneOf(sheetFor)}"><button class="btn icon ghost note-x" data-act="note-close" aria-label="關閉">${icon("close")}</button><div class="note-sheet-t">${esc(sheetFor.title)}</div>${noteBody(sheetFor) || ""}</div>` : ""}`;
 }
-// 紙張頂端：契約名稱、案號、輪次與來源（建立者可編輯名稱）
-function sheetHead() {
-  const src = S.contract?.source ? (S.contract.source.startsWith("範本：") ? S.contract.source : `匯入自 ${S.contract.source}`) : "";
-  const meta = [caseNo() && `案號 ${caseNo()}`, `第 ${roundNo()} 輪`, src].filter(Boolean).map(esc).join("<span aria-hidden=\"true\">　·　</span>");
-  return `<header class="sheet-head"><h2>${esc(docTitle())}</h2><p>${meta}</p></header>`;
-}
+
 export function fieldsView(html, interactive) {
   if (S.onlyChecked) return Fields.hideUncheckedHtml(html);
   if (!interactive) return html;
@@ -28,57 +33,61 @@ export function fieldsView(html, interactive) {
   Fields.decorate(root, FIELD_LABELS);
   return root.innerHTML;
 }
-export function clauseHtml(c, idx, vis) {
-  if (S.editing === c.id) return `<section class="clause" data-state="edit" id="c-${c.id}" data-cid="${c.id}"><div id="slot-${c.id}"></div></section>`;
+
+// 這一條的修訂狀況
+function infoOf(c) {
   const pend = pendingOf(c.id);
   const theirs = pend.filter((r) => !sameSide(r.by)), ours = pend.filter((r) => sameSide(r.by));
   const kinds = new Set(pend.map((r) => r.kind || "edit"));
-  const state = theirs.length ? "theirs" : ours.length ? "mine" : "clean";
-  // 他方的修訂預設標出差異；本方的修訂預設可繼續填寫，需要時再切換顯示差異
-  const flip = S.plainView.has(c.id), plain = theirs.length ? flip : !flip;
-  const cur = clauseHtmlOf(c);
   const firstEdit = pend.find((r) => (r.kind || "edit") === "edit");
-  const isAdd = kinds.has("add"), isDel = kinds.has("delete");
-  const showDiff = firstEdit && !plain && !isAdd && !isDel && !S.onlyChecked;
-  const titleHtml = showDiff && firstEdit.titleBefore !== c.title ? diffText(firstEdit.titleBefore, c.title) : esc(c.title);
-  const bodyHtml = showDiff ? diffHtml(revHtml(firstEdit, "before"), cur) : fieldsView(cur, canEditDoc() && !isDel);
+  // 他方的修訂預設標出差異；本方的修訂預設顯示修訂後內容（可繼續填寫），需要時再切換
+  const flip = S.plainView.has(c.id), plain = theirs.length ? flip : !flip;
+  return { pend, theirs, ours, kinds, firstEdit, plain, isAdd: kinds.has("add"), isDel: kinds.has("delete") };
+}
+const toneOf = (c) => { const i = infoOf(c); return i.theirs.length ? "theirs" : i.ours.length ? "mine" : "plain"; };
+
+export function clauseHtml(c) {
+  const i = infoOf(c);
+  const state = i.theirs.length ? "theirs" : i.ours.length ? "mine" : "clean";
+  const bar = state !== "clean" || S.confirm?.id === c.id ? `<button class="cbar" data-act="note-open" data-id="${c.id}" data-tone="${state === "clean" ? "mine" : state}" aria-label="查看修訂註記" title="查看修訂註記"></button>` : "";
+  if (S.editing === c.id) return `<section class="pb clause" data-state="edit" id="c-${c.id}" data-cid="${c.id}">${bar}<div id="slot-${c.id}"></div></section>`;
+  const cur = clauseHtmlOf(c);
+  const showDiff = i.firstEdit && !i.plain && !i.isAdd && !i.isDel && !S.onlyChecked;
+  const titleHtml = showDiff && i.firstEdit.titleBefore !== c.title ? diffText(i.firstEdit.titleBefore, c.title) : esc(c.title);
+  const bodyHtml = showDiff ? diffHtml(revHtml(i.firstEdit, "before"), cur) : fieldsView(cur, canEditDoc() && !i.isDel);
   // 顯示目前內容（非差異標示）時，點條文就能直接修訂
-  const editable = canEditDoc() && !isDel && !showDiff && !S.onlyChecked;
-  const authors = [...new Set(pend.map((r) => whoFull(r.by)))].join("、");
-  const what = [...kinds].map((k) => KIND[k]).join("、");
-  let pill = "";
-  if (theirs.length) pill = `<span class="pill theirs">待您審閱</span>`;
-  else if (ours.length) pill = `<span class="pill mine">待${SIDE[mySide() === "A" ? "B" : "A"]}審閱</span>`;
-  if (isAdd) pill += `<span class="pill ok">新增條文</span>`;
-  if (isDel) pill += `<span class="pill no">提議刪除</span>`;
-  if (kinds.has("move")) pill += `<span class="pill plain">已調整位置</span>`;
-  const fresh = pend.some(isNew) ? `<span class="newdot" title="新的修訂"></span> ` : "";
-  let review = "";
-  if (S.confirm?.id === c.id) {
-    const k = S.confirm.kind;
-    const msg = k === "delete" ? "他方接受後才會刪除" : "恢復為修訂前內容";
-    const label = k === "delete" ? "提議刪除此條？" : theirs.length ? "退回此條修訂？" : "撤回本方修訂？";
-    const verb = k === "delete" ? "提議刪除" : theirs.length ? "退回" : "撤回";
-    review = `<div class="confirm" data-kind="${k}"><label for="reason-${c.id}"><strong>${label}</strong>${msg}</label>
-      ${k === "delete" ? "" : `<input id="reason-${c.id}" class="inp" maxlength="500" placeholder="${theirs.length ? "退回理由（選填）" : "撤回原因（選填）"}">`}
-      <div class="actions"><button class="btn" data-act="confirm-cancel">取消</button><button class="btn bad" data-act="${k === "delete" ? "delete-do" : "revert-do"}" data-id="${c.id}">${verb}</button></div></div>`;
-  } else if (pend.length) {
-    review = `<div class="review">
-      <span class="note">${esc(authors)} · ${fmt(pend[pend.length - 1].at)} · ${esc(what)}${pend.length > 1 ? ` ${pend.length} 次` : ""}</span>
-      ${firstEdit && !isAdd && !isDel ? `<button class="linkbtn" data-act="toggle-plain" data-id="${c.id}">${plain ? "顯示修訂處" : "只看修訂後"}</button>` : ""}
-      <span class="rv-acts">${theirs.length ? `<button class="btn sm primary" data-act="review-go" data-id="${c.id}">前往審閱${icon("chevronRight", { size: 16 })}</button>` : ""}
-      ${!theirs.length && ours.length ? `<button class="btn sm" data-act="revert-open" data-id="${c.id}">撤回</button>` : ""}</span>
-    </div>`;
-  }
-  const tools = canEditDoc() && !isDel ? `<div class="tools">
-      <button class="btn icon ghost" data-act="up" data-id="${c.id}" title="上移" aria-label="上移" ${idx === 0 ? "disabled" : ""}>${icon("arrowUp", { size: 18 })}</button>
-      <button class="btn icon ghost" data-act="down" data-id="${c.id}" title="下移" aria-label="下移" ${idx === vis.length - 1 ? "disabled" : ""}>${icon("arrowDown", { size: 18 })}</button>
-      <button class="btn icon ghost" data-act="add" data-after="${c.id}" title="在下方新增條文" aria-label="在下方新增條文">${icon("add", { size: 18 })}</button>
-      <button class="btn icon ghost" data-act="delete-open" data-id="${c.id}" title="提議刪除" aria-label="提議刪除">${icon("delete", { size: 18 })}</button></div>` : "";
+  const editable = canEditDoc() && !i.isDel && !showDiff && !S.onlyChecked;
   const last = c.updatedAt ? `${whoFull(c.updatedBy)} · ${fmt(c.updatedAt)}` : "";
-  return `<section class="clause ${isAdd ? "added" : ""} ${isDel ? "deleted" : ""} ${S.focusPending === c.id ? "focus" : ""}" data-state="${state}" id="c-${c.id}" data-cid="${c.id}"${editable ? " data-editable" : ""}>
-    <div class="clause-head"><h3${last ? ` title="最後修訂：${esc(last)}"` : ""}>${fresh}${titleHtml}</h3><div class="actions">${pill}${tools}</div></div>
-    ${review}
-    <div class="rich">${bodyHtml || `<p style="color:var(--muted)">（無內文）</p>`}</div>
-  </section>`;
+  return `<section class="pb clause ${i.isAdd ? "added" : ""} ${i.isDel ? "deleted" : ""} ${S.focusPending === c.id ? "focus" : ""}" data-state="${state}" id="c-${c.id}" data-cid="${c.id}"${editable ? " data-editable" : ""}>
+    ${bar}<h3${last ? ` title="最後修訂：${esc(last)}"` : ""}>${titleHtml}</h3><div class="rich">${bodyHtml}</div></section>`;
+}
+
+// 修訂註記：誰改的、改了什麼、撤回／前往審閱／切換顯示；確認刪除或撤回也在這裡
+function noteBody(c) {
+  const i = infoOf(c), confirming = S.confirm?.id === c.id;
+  if (!i.pend.length && !confirming) return "";
+  let pills = "";
+  if (i.theirs.length) pills += `<span class="pill theirs">待您審閱</span>`;
+  else if (i.ours.length) pills += `<span class="pill mine">待${SIDE[mySide() === "A" ? "B" : "A"]}審閱</span>`;
+  if (i.isAdd) pills += `<span class="pill ok">新增條文</span>`;
+  if (i.isDel) pills += `<span class="pill no">提議刪除</span>`;
+  if (i.kinds.has("move")) pills += `<span class="pill plain">已調整位置</span>`;
+  const head = i.pend.length ? `<div class="note-who">${i.pend.some(isNew) ? `<span class="newdot" title="新的修訂"></span>` : ""}${esc([...new Set(i.pend.map((r) => whoFull(r.by)))].join("、"))}</div>
+    <div class="note-meta">${fmt(i.pend[i.pend.length - 1].at)} · ${esc([...i.kinds].map((k) => KIND[k]).join("、"))}${i.pend.length > 1 ? ` ${i.pend.length} 次` : ""}</div>
+    <div class="note-pills">${pills}</div>` : "";
+  if (confirming) {
+    const k = S.confirm.kind;
+    const label = k === "delete" ? "提議刪除此條？" : i.theirs.length ? "退回此條修訂？" : "撤回本方修訂？";
+    const msg = k === "delete" ? "他方接受後才會刪除" : "恢復為修訂前內容";
+    const verb = k === "delete" ? "提議刪除" : i.theirs.length ? "退回" : "撤回";
+    return `${head}<div class="confirm" data-kind="${k}"><label for="reason-${c.id}"><strong>${label}</strong>${msg}</label>
+      ${k === "delete" ? "" : `<input id="reason-${c.id}" class="inp" maxlength="500" placeholder="${i.theirs.length ? "退回理由（選填）" : "撤回原因（選填）"}">`}
+      <div class="actions"><button class="btn sm" data-act="confirm-cancel">取消</button><button class="btn sm bad" data-act="${k === "delete" ? "delete-do" : "revert-do"}" data-id="${c.id}">${verb}</button></div></div>`;
+  }
+  const acts = [
+    i.firstEdit && !i.isAdd && !i.isDel && `<button class="linkbtn" data-act="toggle-plain" data-id="${c.id}">${i.plain ? "顯示修訂處" : "只看修訂後"}</button>`,
+    i.theirs.length && `<button class="btn sm primary" data-act="review-go" data-id="${c.id}">前往審閱${icon("chevronRight", { size: 16 })}</button>`,
+    !i.theirs.length && i.ours.length && `<button class="btn sm" data-act="revert-open" data-id="${c.id}">撤回</button>`
+  ].filter(Boolean).join("");
+  return `${head}<div class="note-acts">${acts}</div>`;
 }

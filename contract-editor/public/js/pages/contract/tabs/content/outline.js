@@ -33,9 +33,9 @@ export function renderOutline() {
     const st = stateOf(c), del = pendingOf(c.id).some((r) => r.kind === "delete");
     const tag = st === "theirs" ? "待您審閱" : st === "mine" ? `待${other}審閱` : "";
     return `<li><a href="#c-${c.id}" data-act="goto" data-id="${c.id}" data-state="${st}"${c.id === currentId ? ` aria-current="true"` : ""} class="${del ? "gone" : ""}" title="${esc(c.title)}${tag ? `（${tag}）` : ""}">
-      <span class="o-dot" aria-hidden="true"></span><span class="o-t">${esc(c.title)}</span>${tag ? `<span class="sr">${tag}</span>` : ""}</a></li>`;
+      <span class="o-dot" aria-hidden="true"></span><span class="o-t">${esc(c.title)}</span>${tag ? `<span class="sr">${tag}</span>` : ""}<span class="o-pg" data-cid="${c.id}"></span></a></li>`;
   }).join("");
-  el.innerHTML = `<div class="o-head"><span>條文目錄</span><span class="o-n">${vis.length} 條</span>
+  el.innerHTML = `<div class="o-head"><span>條文目錄</span><span class="o-n">${vis.length} 條</span><span class="o-n" id="o-pages"></span>
       <button class="btn icon ghost only-narrow" data-act="outline-toggle" aria-label="關閉目錄">${icon("close")}</button></div>
     ${todo ? `<button class="o-todo" data-act="nav" data-v="review"><span class="o-dot" data-state="theirs" aria-hidden="true"></span>待您審閱 ${todo} 條<span class="o-go">前往審閱${icon("chevronRight", { size: 16 })}</span></button>` : ""}
     <ol class="o-list">${items}</ol>

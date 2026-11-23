@@ -6,12 +6,13 @@ import { S, ctx } from "../../context.js";
 import { render } from "../../render.js";
 import { go } from "../../router.js";
 import { simple } from "../../sync.js";
-import { sheetHtml } from "./clauses.js";
+import { paperHtml } from "./clauses.js";
 import { closePop, openPop } from "./field-popover.js";
 import { fieldChange } from "./fields.js";
 import { addClause, beginEdit, conflictActions, editorFor, finishEdit, hasUnsaved, keepSelection, restoreSelection, runCommand } from "./inline-editor.js";
 import { locate } from "./locate.js";
 import { renderOutline, watchOutline } from "./outline.js";
+import { bindPaper, layoutPaper, zoomActions } from "./paper.js";
 import { renderToolbar } from "./toolbar.js";
 
 // 重繪時保留編輯中條文的游標位置（編輯區元素本身由 inline-editor.js 沿用）
@@ -24,7 +25,7 @@ export default {
   title: () => "", // 分頁按鈕已標示，不重複標題
   html() {
     kept = keepSelection();
-    return sheetHtml();
+    return paperHtml();
   },
   after() {
     const c = S.editing && S.clauses.find((x) => x.id === S.editing);
@@ -33,20 +34,29 @@ export default {
     kept = null;
     renderToolbar();
     renderOutline();
+    layoutPaper();
     watchOutline();
   },
   leave: () => finishEdit(),
   actions: {
     ...conflictActions,
+    ...zoomActions,
+    // 修訂註記：有註記欄時捲到該則並標示，沒有（窄螢幕）時從下方開啟
+    "note-open": (el, id) => {
+      const card = document.querySelector(`#desk.with-notes .note[data-for="${CSS.escape(id)}"]`);
+      if (card) { card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash"); return; }
+      S.noteOpen = id; render();
+    },
+    "note-close": () => { S.noteOpen = null; S.confirm = null; render(); },
     add: (el) => addClause(el.dataset.after),
     up: (el, id) => simple(`clauses/${id}/move`, { dir: -1 }),
     down: (el, id) => simple(`clauses/${id}/move`, { dir: 1 }),
-    "delete-open": (el, id) => { S.confirm = { id, kind: "delete" }; render(); },
+    "delete-open": (el, id) => { S.confirm = { id, kind: "delete" }; S.noteOpen = id; render(); },
     "delete-do": (el, id) => simple(`clauses/${id}/delete`, {}, "已提議刪除，他方接受後才會正式刪除"),
     // 撤回本方尚未審閱的修訂
-    "revert-open": (el, id) => { S.confirm = { id, kind: "revert" }; render(); $("reason-" + id)?.focus(); },
+    "revert-open": (el, id) => { S.confirm = { id, kind: "revert" }; S.noteOpen = S.noteOpen && id; render(); $("reason-" + id)?.focus(); },
     "revert-do": (el, id) => simple(`clauses/${id}/revert`, { note: (el.closest(".confirm")?.querySelector("input")?.value || "").trim() }, "已撤回，條文恢復為修訂前內容"),
-    "confirm-cancel": () => { S.confirm = null; render(); },
+    "confirm-cancel": () => { S.confirm = null; S.noteOpen = null; render(); },
     "toggle-plain": (el, id) => { S.plainView.has(id) ? S.plainView.delete(id) : S.plainView.add(id); render(); },
     "review-go": (el, id) => { S.focusPending = id; go("review"); },
     goto: (el, id, ev) => { ev.preventDefault(); locate(id, { flash: false }); },
@@ -86,12 +96,14 @@ export default {
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       if (S.editing) { finishEdit(); return; }
+      if (S.noteOpen) { S.noteOpen = null; S.confirm = null; render(); return; }
       if (!(S.outlineOpen || S.moreOpen)) return;
       S.outlineOpen = false; S.moreOpen = false; render();
     });
     // 格式按鈕：按下時不讓編輯區失去游標
     document.addEventListener("mousedown", (e) => { if (e.target.closest(".ribbon button")) e.preventDefault(); });
     document.addEventListener("click", (e) => { const b = e.target.closest(".ribbon [data-cmd]"); if (b && !b.disabled) runCommand(b.dataset.cmd); });
+    bindPaper();
     // 還有修改沒存好就關閉或離開頁面時提醒
     window.addEventListener("beforeunload", (e) => { if (hasUnsaved()) e.preventDefault(); });
   }

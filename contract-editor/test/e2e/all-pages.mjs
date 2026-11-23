@@ -82,7 +82,8 @@ async function main() {
     await o.keyboard.press("Escape");
     await o.waitForSelector("section.clause[data-state=mine]");
     assert.match(await o.locator("section.clause[data-state=mine]").innerText(), /測試修訂/);
-    await o.locator("section.clause[data-state=mine] [data-act=revert-open]").click();
+    // 修訂註記在紙張右側：撤回
+    await o.locator(".note[data-tone=mine] [data-act=revert-open]").click();
     await o.click("[data-act=revert-do]");
     await o.waitForSelector("section.clause[data-state=mine]", { state: "detached" });
     step("直接點條文修訂（自動儲存）並撤回");
@@ -92,12 +93,16 @@ async function main() {
     await o.keyboard.press("Enter");
     await o.keyboard.type("新增條文的內容");
     await o.waitForFunction(() => document.getElementById("save-state")?.textContent === "已儲存");
-    await o.click(".sheet-head");
+    await o.click(".pf .ph");
     await o.waitForSelector("section.clause.added:has-text('第九十九條　測試新增')");
     step("新增條文：直接輸入標題與內容");
-    await o.locator("section.clause").nth(3).hover();
-    await o.locator("section.clause").nth(3).locator("[data-act=down]").click();
+    // 調整順序：點進條文後用工具列的「下移此條」
+    await o.locator("section.clause").nth(3).locator("h3").click();
+    await o.waitForSelector(".ie-title");
+    await o.click(".ribbon [data-act=down]");
     await o.waitForTimeout(800);
+    await o.keyboard.press("Escape");
+    await o.waitForSelector(".ie-title", { state: "detached" });
     await o.locator("section.clause").nth(1).locator(".fx-box").first().click();
     await o.waitForTimeout(1500);
     await o.click("[data-act=goto] >> nth=5");

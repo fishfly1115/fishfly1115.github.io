@@ -28,6 +28,7 @@ contract-editor/
 │       │   ├── fields.js        □ 勾選、日期、底線空格、【】、空白儲存格的辨識與填寫；「僅顯示已勾選」
 │       │   ├── split.js         把匯入的 HTML 切成條文（第X條、附件、簽署欄）
 │       │   ├── compare.js       匯回的修訂版與現行版逐條比對
+│       │   ├── paginate.js      A4 版面與分頁（紙張檢視與 PDF 共用，換頁位置一致）
 │       │   └── templates.js     讀取範本
 │       ├── api/client.js        呼叫後端 API（附上連結金鑰或管理密碼）
 │       ├── word/                Word 匯入、匯出
@@ -72,7 +73,7 @@ contract-editor/
 │                   ├── index.js         分頁登錄與分頁定義的格式（Tab）
 │                   ├── overview/        總覽：view.js 步驟與下一步、news.js 自上次查看後的更新
 │                   ├── content/         契約內容：clauses.js 契約紙張、outline.js 條文目錄、toolbar.js 工具列、
-│                   │                    inline-editor.js 直接點條文修訂（自動儲存）、fields.js／field-popover.js 直接填寫、
+│                   │                    paper.js 紙張排版與縮放、inline-editor.js 直接點條文修訂（自動儲存）、fields.js／field-popover.js 直接填寫、
 │                   │                    locate.js 定位條文
 │                   ├── review/          審閱：view.js 一次一處、summary.js 修訂摘要、actions.js 接受／退回／全部接受
 │                   ├── members/         成員：view.js 邀請卡（連結＋密碼）、甲乙方成員、我的資料
@@ -115,6 +116,7 @@ core/         基礎工具（DOM、格式、過濾、文字比對、函式庫載
 ```
 
 - **一頁一個重點**：契約頁的導覽列只有四個分頁（總覽、契約內容、審閱、成員）；修訂紀錄與匯入是「契約內容」的子頁（從「更多」選單進入，頁首有「返回」），匯出是視窗。各頁都有網址；首頁的列表與新增契約也是不同網址。
+- **紙張檢視與 PDF 同一套排版**：`lib/paginate.js` 定義 A4 尺寸、量測與分頁規則（條文只在段落之間換頁），`css/print.css` 的 `.pf` 是共用的印刷樣式；畫面（`tabs/content/paper.js`）與 PDF（`pdf/pdf-export.js`）都用它們，所以換頁位置一致，e2e 會比對兩邊頁數。
 - **像 Word 一樣修訂**：條文本身就是編輯區（contenteditable），格式按鈕在固定的工具列；自動儲存送出 `merge: true`，伺服器把同一人 30 分鐘內連續的修改合併為一筆修訂；背景更新重繪時沿用同一個編輯區元素並還原游標。
 - **文件區最大化**：分頁與進度和頂端列合為一列；「契約內容」的工具列固定在頂端列下方（桌面版），文件緊接在下方。
 - **文字精簡**：畫面只放必要的標題、狀態與按鈕文字，不放說明段落；按鈕名稱本身就說明要做什麼。
