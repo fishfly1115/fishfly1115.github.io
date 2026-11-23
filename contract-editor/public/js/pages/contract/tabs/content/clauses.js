@@ -1,4 +1,5 @@
-// 「契約內容」頁的契約紙張：每條的修訂標示、可直接填寫的欄位、條文工具；他方修訂改到「審閱」頁處理。
+// 「契約內容」頁的契約紙張：每條的修訂標示、可直接填寫的欄位、條文工具；點條文即可直接修訂（inline-editor.js）。
+// 他方修訂改到「審閱」頁處理。
 import { diffHtml, diffText } from "../../../../core/diff.js";
 import { esc } from "../../../../core/dom.js";
 import { fmt } from "../../../../core/format.js";
@@ -9,12 +10,9 @@ import { icon } from "../../../../ui/icons.js";
 
 export function sheetHtml() {
   const vis = visible();
-  if (!vis.length && !S.adding) return `<div class="sheet"><div class="empty"><p>尚無條文</p><div class="row" style="justify-content:center">${S.isAdmin ? `<button class="btn primary" data-act="nav" data-v="import">匯入 Word 或套用範本</button>` : ""}<button class="btn" data-act="add" data-after="">新增條文</button></div></div></div>`;
-  const slotNew = `<section class="clause added" data-state="edit"><div id="slot-new"></div></section>`;
-  let body = "";
-  vis.forEach((c, i) => { body += clauseHtml(c, i, vis); if (S.adding?.afterId === c.id) body += slotNew; });
-  if (S.adding && !vis.some((c) => c.id === S.adding.afterId)) body += slotNew;
-  const addEnd = canEditDoc() && !S.adding && vis.length ? `<div class="addrow"><button class="btn sm ghost" data-act="add" data-after="${vis[vis.length - 1].id}">${icon("add", { size: 18 })}新增條文</button></div>` : "";
+  if (!vis.length) return `<div class="sheet"><div class="empty"><p>尚無條文</p><div class="row" style="justify-content:center">${S.isAdmin ? `<button class="btn primary" data-act="nav" data-v="import">匯入 Word 或套用範本</button>` : ""}<button class="btn" data-act="add" data-after="">新增條文</button></div></div></div>`;
+  const body = vis.map((c, i) => clauseHtml(c, i, vis)).join("");
+  const addEnd = canEditDoc() && vis.length ? `<div class="addrow"><button class="btn sm ghost" data-act="add" data-after="${vis[vis.length - 1].id}">${icon("add", { size: 18 })}新增條文</button></div>` : "";
   return `<article class="sheet">${sheetHead()}${body}${addEnd}</article>`;
 }
 // 紙張頂端：契約名稱、案號、輪次與來源（建立者可編輯名稱）
@@ -31,7 +29,7 @@ export function fieldsView(html, interactive) {
   return root.innerHTML;
 }
 export function clauseHtml(c, idx, vis) {
-  if (S.editing === c.id) return `<section class="clause" data-state="edit"><div id="slot-${c.id}"></div></section>`;
+  if (S.editing === c.id) return `<section class="clause" data-state="edit" id="c-${c.id}" data-cid="${c.id}"><div id="slot-${c.id}"></div></section>`;
   const pend = pendingOf(c.id);
   const theirs = pend.filter((r) => !sameSide(r.by)), ours = pend.filter((r) => sameSide(r.by));
   const kinds = new Set(pend.map((r) => r.kind || "edit"));
@@ -44,6 +42,8 @@ export function clauseHtml(c, idx, vis) {
   const showDiff = firstEdit && !plain && !isAdd && !isDel && !S.onlyChecked;
   const titleHtml = showDiff && firstEdit.titleBefore !== c.title ? diffText(firstEdit.titleBefore, c.title) : esc(c.title);
   const bodyHtml = showDiff ? diffHtml(revHtml(firstEdit, "before"), cur) : fieldsView(cur, canEditDoc() && !isDel);
+  // 顯示目前內容（非差異標示）時，點條文就能直接修訂
+  const editable = canEditDoc() && !isDel && !showDiff && !S.onlyChecked;
   const authors = [...new Set(pend.map((r) => whoFull(r.by)))].join("、");
   const what = [...kinds].map((k) => KIND[k]).join("、");
   let pill = "";
@@ -71,13 +71,12 @@ export function clauseHtml(c, idx, vis) {
     </div>`;
   }
   const tools = canEditDoc() && !isDel ? `<div class="tools">
-      <button class="btn sm" data-act="edit" data-id="${c.id}">修訂</button>
       <button class="btn icon ghost" data-act="up" data-id="${c.id}" title="上移" aria-label="上移" ${idx === 0 ? "disabled" : ""}>${icon("arrowUp", { size: 18 })}</button>
       <button class="btn icon ghost" data-act="down" data-id="${c.id}" title="下移" aria-label="下移" ${idx === vis.length - 1 ? "disabled" : ""}>${icon("arrowDown", { size: 18 })}</button>
       <button class="btn icon ghost" data-act="add" data-after="${c.id}" title="在下方新增條文" aria-label="在下方新增條文">${icon("add", { size: 18 })}</button>
       <button class="btn icon ghost" data-act="delete-open" data-id="${c.id}" title="提議刪除" aria-label="提議刪除">${icon("delete", { size: 18 })}</button></div>` : "";
   const last = c.updatedAt ? `${whoFull(c.updatedBy)} · ${fmt(c.updatedAt)}` : "";
-  return `<section class="clause ${isAdd ? "added" : ""} ${isDel ? "deleted" : ""} ${S.focusPending === c.id ? "focus" : ""}" data-state="${state}" id="c-${c.id}" data-cid="${c.id}">
+  return `<section class="clause ${isAdd ? "added" : ""} ${isDel ? "deleted" : ""} ${S.focusPending === c.id ? "focus" : ""}" data-state="${state}" id="c-${c.id}" data-cid="${c.id}"${editable ? " data-editable" : ""}>
     <div class="clause-head"><h3${last ? ` title="最後修訂：${esc(last)}"` : ""}>${fresh}${titleHtml}</h3><div class="actions">${pill}${tools}</div></div>
     ${review}
     <div class="rich">${bodyHtml || `<p style="color:var(--muted)">（無內文）</p>`}</div>

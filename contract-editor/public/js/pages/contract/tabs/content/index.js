@@ -1,5 +1,5 @@
-// 「契約內容」頁：條文目錄＋契約紙張；閱讀、勾選填寫、修訂、新增或調整條文。
-// 工具列有這一頁的主要按鈕（交給他方）、匯出，以及「更多」選單（匯入、修訂紀錄）。
+// 「契約內容」頁：條文目錄＋契約紙張；閱讀、勾選填寫、直接修訂（像 Word）、新增或調整條文。
+// 工具列有格式按鈕、這一頁的主要按鈕（交給他方）、匯出，以及「更多」選單（匯入、修訂紀錄、只顯示已勾選）。
 import { $ } from "../../../../core/dom.js";
 import { store } from "../../../../core/storage.js";
 import { S, ctx } from "../../context.js";
@@ -7,17 +7,15 @@ import { render } from "../../render.js";
 import { go } from "../../router.js";
 import { simple } from "../../sync.js";
 import { sheetHtml } from "./clauses.js";
-import { save } from "./editing.js";
-import { editorEl } from "./editor.js";
 import { closePop, openPop } from "./field-popover.js";
 import { fieldChange } from "./fields.js";
+import { addClause, beginEdit, conflictActions, editorFor, finishEdit, hasUnsaved, keepSelection, restoreSelection, runCommand } from "./inline-editor.js";
 import { locate } from "./locate.js";
 import { renderOutline, watchOutline } from "./outline.js";
 import { renderToolbar } from "./toolbar.js";
 
-// 編輯中的條文：重繪時保留同一個編輯器元素，避免清掉尚未儲存的內容
-let keptEditor = null;
-const editingKey = () => S.editing || (S.adding ? "new" : null);
+// 重繪時保留編輯中條文的游標位置（編輯區元素本身由 inline-editor.js 沿用）
+let kept = null;
 
 /** @type {import("../index.js").Tab} */
 export default {
@@ -25,27 +23,22 @@ export default {
   nav: { label: "契約內容" },
   title: () => "", // 分頁按鈕已標示，不重複標題
   html() {
-    const key = editingKey();
-    keptEditor = key ? document.getElementById("editor-" + key) : null;
+    kept = keepSelection();
     return sheetHtml();
   },
   after() {
-    const key = editingKey();
-    const slot = key && document.getElementById("slot-" + key);
-    if (slot) slot.replaceWith(keptEditor || editorEl(key === "new" ? null : S.clauses.find((c) => c.id === key)));
+    const c = S.editing && S.clauses.find((x) => x.id === S.editing);
+    const slot = c && document.getElementById("slot-" + c.id);
+    if (slot) { slot.replaceWith(editorFor(c)); restoreSelection(kept); }
+    kept = null;
     renderToolbar();
     renderOutline();
     watchOutline();
   },
+  leave: () => finishEdit(),
   actions: {
-    edit: (el, id) => {
-      const c = S.clauses.find((x) => x.id === id);
-      Object.assign(S, { editing: id, adding: null, editBase: { rev: c.rev }, confirm: null });
-      render(); $("eb-" + id)?.focus();
-    },
-    add: (el) => { Object.assign(S, { adding: { afterId: el.dataset.after || null }, editing: null, confirm: null }); render(); $("et-new")?.focus(); },
-    cancel: () => { S.editing = null; S.adding = null; render(); },
-    save: (el, id) => save(id),
+    ...conflictActions,
+    add: (el) => addClause(el.dataset.after),
     up: (el, id) => simple(`clauses/${id}/move`, { dir: -1 }),
     down: (el, id) => simple(`clauses/${id}/move`, { dir: 1 }),
     "delete-open": (el, id) => { S.confirm = { id, kind: "delete" }; render(); },
@@ -59,8 +52,8 @@ export default {
     goto: (el, id, ev) => { ev.preventDefault(); locate(id, { flash: false }); },
     "outline-toggle": () => { S.outlineOpen = !S.outlineOpen; render(); },
     "more-toggle": () => { S.moreOpen = !S.moreOpen; render(); },
-    "only-checked": (el) => {
-      S.onlyChecked = el.dataset.v === "1";
+    "only-checked": () => {
+      S.onlyChecked = !S.onlyChecked;
       store.set("ce:only:" + ctx.CID, S.onlyChecked ? "1" : null);
       closePop(); render();
     }
@@ -82,9 +75,24 @@ export default {
       // 點選單外或選單項目都會收起「更多」選單（項目本身的操作仍會執行）
       if (S.moreOpen && !e.target.closest("[data-act=more-toggle]")) { S.moreOpen = false; render(); }
     }, true);
+    // 點條文開始修訂；點條文以外的地方結束（格式按鈕、填寫視窗除外）
+    document.addEventListener("click", (e) => {
+      if (S.view !== "content") return;
+      const t = e.target;
+      if (S.editing && !t.closest(`#ie-${CSS.escape(S.editing)}, .ribbon, #pop`)) finishEdit();
+      const sec = t.closest(".clause[data-editable]");
+      if (sec && t.closest("h3, .rich") && !t.closest(".fx, button, a, input")) beginEdit(sec.dataset.cid, t.closest("h3") ? "title" : { x: e.clientX, y: e.clientY });
+    });
     document.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape" || !(S.outlineOpen || S.moreOpen)) return;
+      if (e.key !== "Escape") return;
+      if (S.editing) { finishEdit(); return; }
+      if (!(S.outlineOpen || S.moreOpen)) return;
       S.outlineOpen = false; S.moreOpen = false; render();
     });
+    // 格式按鈕：按下時不讓編輯區失去游標
+    document.addEventListener("mousedown", (e) => { if (e.target.closest(".ribbon button")) e.preventDefault(); });
+    document.addEventListener("click", (e) => { const b = e.target.closest(".ribbon [data-cmd]"); if (b && !b.disabled) runCommand(b.dataset.cmd); });
+    // 還有修改沒存好就關閉或離開頁面時提醒
+    window.addEventListener("beforeunload", (e) => { if (hasUnsaved()) e.preventDefault(); });
   }
 };

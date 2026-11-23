@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
-import { PASSWORD, chromium, joinWith, nav, newPage, readShare, setName, startServer, step } from "./helpers.mjs";
+import { PASSWORD, chromium, joinWith, more, nav, newPage, readShare, setName, startServer, step } from "./helpers.mjs";
 
 const work = mkdtempSync(join(tmpdir(), "contract-e2e-pages-"));
 
@@ -71,17 +71,30 @@ async function main() {
     step("空白契約到匯入頁套用範本，完成後回到契約內容");
 
     // 契約內容：修訂、撤回、順序、目錄
+    // 像 Word 一樣直接點條文輸入，停止輸入後自動儲存，按 Esc 結束
     const clause = o.locator("section.clause").nth(2);
-    await clause.hover();
-    await clause.locator("[data-act=edit]").click();
-    await o.locator(".editable").first().click();
+    await clause.locator(".rich").click();
+    await o.waitForSelector(".ie-body");
+    assert.equal(await o.locator(".ribbon [data-cmd=bold]").isDisabled(), false, "編輯時格式按鈕可用");
+    await o.keyboard.press("End");
     await o.keyboard.type("（測試修訂）");
-    await o.click("[data-act=save]");
+    await o.waitForFunction(() => document.getElementById("save-state")?.textContent === "已儲存");
+    await o.keyboard.press("Escape");
     await o.waitForSelector("section.clause[data-state=mine]");
+    assert.match(await o.locator("section.clause[data-state=mine]").innerText(), /測試修訂/);
     await o.locator("section.clause[data-state=mine] [data-act=revert-open]").click();
     await o.click("[data-act=revert-do]");
     await o.waitForSelector("section.clause[data-state=mine]", { state: "detached" });
-    step("修訂條文並撤回");
+    step("直接點條文修訂（自動儲存）並撤回");
+    await more(o, "[data-act=add]");
+    await o.waitForSelector(".ie-title");
+    await o.keyboard.type("第九十九條　測試新增");
+    await o.keyboard.press("Enter");
+    await o.keyboard.type("新增條文的內容");
+    await o.waitForFunction(() => document.getElementById("save-state")?.textContent === "已儲存");
+    await o.click(".sheet-head");
+    await o.waitForSelector("section.clause.added:has-text('第九十九條　測試新增')");
+    step("新增條文：直接輸入標題與內容");
     await o.locator("section.clause").nth(3).hover();
     await o.locator("section.clause").nth(3).locator("[data-act=down]").click();
     await o.waitForTimeout(800);

@@ -91,9 +91,9 @@ async function main() {
     step("勾選、日期、空格合併為一筆修訂");
 
     // 3. 僅顯示已勾選
-    await owner.click("[data-act=only-checked][data-v='1']");
+    await more(owner, "[data-act=only-checked]");
     assert.equal(await owner.locator("section.clause").nth(1).locator(".fx-box:not(.on)").count(), 0);
-    await owner.click("[data-act=only-checked][data-v='0']");
+    await more(owner, "[data-act=only-checked]");
     step("僅顯示已勾選");
 
     // 4. 機關把乙方的共編連結＋進入密碼給廠商；廠商再邀請本方法務
