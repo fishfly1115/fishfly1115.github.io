@@ -76,7 +76,7 @@ export function measureBlocks(flow) {
 
 /** 標題區（契約名稱、案號、草案或定稿、列印日期），畫面與 PDF 用同一段 */
 export const headHtml = ({ title, caseNo, final, round }) =>
-  `<div class="pb ph">${final ? `<span class="seal">定<br>稿</span>` : ""}<h2>${esc(title)}</h2>${caseNo ? `<p>案號：${esc(caseNo)}</p>` : ""}<p>${final ? `定稿本（第 ${round} 輪）` : `契約草案（第 ${round} 輪）`}　列印日期：${rocToday()}</p></div>`;
+  `<div class="pb ph"><h2>${esc(title)}</h2>${caseNo ? `<p>案號：${esc(caseNo)}</p>` : ""}<p>${final ? `定稿本（第 ${round} 輪）` : `契約草案（第 ${round} 輪）`}　列印日期：${rocToday()}</p></div>`;
 
 /** 頁首（第 2 頁起）：契約名稱與案號 */
 export const pageHeader = ({ title, caseNo }) => { const h = [title, caseNo && `案號：${caseNo}`].filter(Boolean).join("　"); return h.length > 46 ? h.slice(0, 45) + "…" : h; };

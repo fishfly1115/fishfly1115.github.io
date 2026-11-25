@@ -10,7 +10,6 @@
 .pf .ph { text-align: center; padding-bottom: 26px; position: relative }
 .pf .ph h2 { margin: 0; font-size: 30px; letter-spacing: .3em; text-indent: .3em; font-weight: 700; font-family: var(--f-clause) }
 .pf .ph p { margin: 8px 0 0; font-family: var(--f-body); font-size: 13px; color: #555 }
-.pf .ph .seal { position: absolute; right: 8px; top: -4px; border-color: #b3261e; color: #b3261e }
 .pf h3 { margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: .03em; font-family: var(--f-clause) }
 .pf .rich { font-size: 16.5px; line-height: 2; overflow: visible; padding: 0 }
 .pf .rich table { width: 100%; min-width: 0 }
