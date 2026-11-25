@@ -71,6 +71,16 @@ async function main() {
     step("空白契約到匯入頁套用範本，完成後回到契約內容");
 
     // 契約內容：修訂、撤回、順序、目錄
+    // 只點進條文（標題有全形空白「第二條　…」）、沒有輸入，不應產生修訂
+    const untouched = o.locator("section.clause").nth(2);
+    await untouched.locator("h3").click();
+    await o.waitForSelector(".ie-title");
+    await o.click(".ie-body");
+    await o.waitForTimeout(1500);
+    await o.keyboard.press("Escape");
+    await o.waitForSelector(".ie-title", { state: "detached" });
+    await o.waitForTimeout(1000);
+    assert.equal(await o.locator("section.clause[data-state=mine]").count(), 0, "沒有輸入就不該產生修訂");
     // 像 Word 一樣直接點條文輸入，停止輸入後自動儲存，按 Esc 結束
     const clause = o.locator("section.clause").nth(2);
     await clause.locator(".rich").click();
