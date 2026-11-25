@@ -69,12 +69,6 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .save-state { font-size: 12px; color: var(--muted); margin-left: 8px; white-space: nowrap }
 .ribbon .menu { left: 0; right: auto; min-width: 180px }
 .ribbon .menu button { display: block; min-height: 0; width: 100%; justify-content: flex-start }
-/* 手機編輯時：工具列只留格式按鈕（一列，可左右捲動），匯出等操作結束編輯後再出現 */
-@media (max-width: 640px) {
-  .ribbon .rb-sep, .ribbon [data-cmd="strikeThrough"], .ribbon [data-cmd="removeFormat"] { display: none }
-  body:has(.clause[data-state="edit"]) #toolbar .pb-acts, body:has(.clause[data-state="edit"]) #toolbar [data-act="outline-toggle"] { display: none !important }
-  body:has(.clause[data-state="edit"]) .ribbon { flex-wrap: nowrap; overflow-x: auto; flex: 1 1 100% }
-}
 
 /* History */
 .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px }
@@ -197,17 +191,11 @@ ins.d img { outline: 2px solid var(--ins-fg) }
   .pn { flex: 1; min-width: 0; padding-inline: 6px }
 }
 
-/* 契約內容頁：工具列固定在頂端列下方（手機不固定，避免佔掉畫面），文件區盡量大 */
-@media (min-width: 861px) { body[data-page="content"] header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 10px } }
-body[data-page="content"] header.top .pagebar { margin-top: 0 }
-/* 手機：編輯條文時工具列（格式按鈕）也固定在上方 */
-@media (max-width: 860px) { body[data-page="content"]:has(.clause[data-state="edit"]) header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 8px } }
 body[data-page="content"] .sheet { margin-top: 4px }
 body[data-page="content"] .clause { scroll-margin-top: calc(var(--chrome, 57px) + var(--toolbar, 0px) + 12px) }
 
-/* 契約內容工具列右側：匯出、主要按鈕、更多（窄螢幕時一起換到下一列並靠右） */
-.pb-acts { display: flex; align-items: center; gap: 8px }
-@media (max-width: 640px) { .pb-acts { flex: 1 1 100%; justify-content: flex-end } }
+/* 契約內容工具列右側：匯出、主要按鈕、更多 */
+.pb-acts { display: flex; align-items: center; gap: 8px; flex: none }
 
 /* 子頁（修訂紀錄、匯入）的「返回契約內容」 */
 .back { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); text-decoration: none; font-size: 14px; letter-spacing: 0 }
