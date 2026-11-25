@@ -117,6 +117,15 @@ async function main() {
     await o.waitForTimeout(1500);
     await o.click("[data-act=goto] >> nth=5");
     step("調整順序、勾選、目錄跳轉");
+    // 視窗變窄（平板直放、旋轉）後頂端列變高，捲動時工具列仍要緊接在頂端列下方、不被蓋住
+    const size = o.viewportSize();
+    await o.setViewportSize({ width: 703, height: 1000 });
+    await o.mouse.wheel(0, 1500);
+    await o.waitForTimeout(300);
+    const gap = await o.evaluate(() => document.querySelector("header.top").getBoundingClientRect().top - document.querySelector(".appbar").getBoundingClientRect().bottom);
+    assert.ok(Math.abs(gap) <= 1, `工具列與頂端列的距離應為 0，實際 ${gap}`);
+    await o.setViewportSize(size);
+    step("視窗變窄後捲動，工具列固定在頂端列下方");
 
     // 其他分頁
     await nav(o, "history", ".filters");
