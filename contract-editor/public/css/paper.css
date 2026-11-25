@@ -1,7 +1,7 @@
 /* 契約內容的紙張檢視：灰色桌面上一張張 A4 白紙（版面與 PDF 相同，見 print.css 的 .pf 與 lib/paginate.js），
    右側為修訂註記欄。紙張尺寸、頁首頁尾位置由 paper.js 依 mm 換算後寫入。 */
 body[data-page="content"] .content > * { max-width: none }
-.desk { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding: 16px 8px 64px }
+.desk { display: flex; justify-content: center; align-items: flex-start; gap: 20px; padding: 16px 8px 64px; overflow-x: clip }
 .paper-wrap { position: relative; flex: none }
 .paper { position: absolute; left: 0; top: 0; transform-origin: 0 0 }
 .pages .page { position: absolute; left: 0; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 6px 18px rgba(0, 0, 0, .08) }
@@ -54,6 +54,26 @@ body[data-page="content"] .content > * { max-width: none }
 .zoom button:hover { background: var(--paper) }
 .o-pg { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--f-data); flex: none }
 @media (max-width: 640px) { .desk { padding: 8px 4px 48px } .zoom #zoom-label { min-width: 0 } }
-/* 手機：還沒點進條文時不顯示格式按鈕，工具列少佔一列 */
-@media (max-width: 640px) { body[data-page="content"]:not(:has(.clause[data-state="edit"])) .ribbon { display: none } }
+/* 契約內容的工具列：任何寬度都只有一列，捲動時固定在頂端列下方。
+   放不下時：格式按鈕可左右滑動；窄螢幕把縮放與匯出收進「更多」。 */
+body[data-page="content"] header.top { gap: 0; padding-block: 0; grid-template-columns: minmax(0, 1fr); min-width: 0 }
+body[data-page="content"] .content { min-width: 0 }
+body[data-page="content"] #toolbar.pagebar { min-width: 0; max-width: 100% }
+body[data-page="content"] #csource:empty { display: none }
+body[data-page="content"] header.top:has(#name-prompt:empty) { position: sticky; top: var(--chrome, 57px); z-index: 4; background: var(--paper); padding-block: 6px; border-bottom: 1px solid var(--line) }
+body[data-page="content"] #toolbar.pagebar { flex-wrap: nowrap; margin-top: 0; gap: 8px; min-height: 40px }
+body[data-page="content"] #toolbar .grow { flex: 0 1 0; min-width: 0 }
+body[data-page="content"] #toolbar .ribbon { flex: 1 1 auto; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain }
+body[data-page="content"] #toolbar .ribbon::-webkit-scrollbar { display: none }
+body[data-page="content"] #toolbar .ribbon > * { flex: none }
+.menu-item-narrow { display: none !important }
+@media (max-width: 1180px) {
+  body[data-page="content"] #toolbar .zoom, body[data-page="content"] #toolbar .pb-acts > .btn[data-act="export-open"]:not(.primary) { display: none }
+  .menu-item-narrow { display: grid !important }
+  .save-state[data-hint] { display: none }
+}
+@media (max-width: 640px) {
+  body[data-page="content"] #toolbar .pb-acts .btn.primary { padding-inline: 10px; font-size: 13px }
+  body[data-page="content"] #toolbar [data-act="more-toggle"] { padding-inline: 6px; font-size: 0; gap: 0 }
+}
 .gaps .pg-gap { position: absolute; left: -60px; right: -60px; background: var(--paper); z-index: 2; pointer-events: none }
