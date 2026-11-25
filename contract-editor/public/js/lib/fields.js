@@ -91,7 +91,7 @@ function decorate(root, labels) {
     if (f.type === "cell") { btn.setAttribute("aria-label", labels.cell); f.block.textContent = ""; f.block.appendChild(btn); continue; }
     const r = rangeFor(f.block, f.map, f.a, f.b); if (!r) continue;
     btn.appendChild(r.extractContents());
-    if (f.type === "box") { btn.setAttribute("role", "checkbox"); btn.setAttribute("aria-checked", f.checked ? "true" : "false"); btn.setAttribute("aria-label", f.checked ? labels.checked : labels.unchecked); btn.textContent = f.checked ? "☑" : "□"; }
+    if (f.type === "box") { btn.setAttribute("role", "checkbox"); btn.setAttribute("aria-checked", f.checked ? "true" : "false"); btn.setAttribute("aria-label", f.checked ? labels.checked : labels.unchecked); btn.textContent = f.checked ? "☑\uFE0E" : "□"; }
     else btn.setAttribute("aria-label", f.type === "date" ? labels.date : labels.blank);
     r.insertNode(btn);
   }

@@ -39,7 +39,8 @@ export async function buildPdf(meta, clauses, stage) {
   await need("html2canvas", "jspdf");
   let textLayer = true;
   stage.className = "pf";
-  stage.innerHTML = headHtml(meta) + clauses.map((c) => `<div class="pb"><h3>${esc(c.title)}</h3><div class="rich">${c.html}</div></div>`).join("");
+  // ☑ 後加「文字樣式」選擇符，避免手機把它畫成彩色表情符號
+  stage.innerHTML = headHtml(meta) + clauses.map((c) => `<div class="pb"><h3>${esc(c.title)}</h3><div class="rich">${c.html.replace(/☑(?!\uFE0E)/g, "☑\uFE0E")}</div></div>`).join("");
   try {
     await Promise.all([...stage.querySelectorAll("img")].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; })));
     try { await document.fonts.ready; } catch {}
