@@ -69,7 +69,8 @@ export function editorFor(c) {
     <div class="warn ie-warn" hidden></div>
     <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>`;
   const title = el.querySelector(".ie-title"), body = el.querySelector(".ie-body");
-  session = { id: c.id, rev: c.rev, el, title, body, savedTitle: c.title, savedHtml: normalize(body.innerHTML), timer: 0, queue: Promise.resolve(), saved: false, conflict: false, range: null };
+  // 以剛放進編輯區的內容為基準：只點進來、沒有輸入就不會存出一筆修訂
+  session = { id: c.id, rev: c.rev, el, title, body, savedTitle: titleOf(title), savedHtml: normalize(body.innerHTML), timer: 0, queue: Promise.resolve(), saved: false, conflict: false, range: null };
   bind(session, el.querySelector("input[type=file]"));
   return el;
 }
@@ -95,7 +96,9 @@ function bind(s, fileIn) {
 
 // ── 儲存 ─────────────────────────────────────────────────
 
-const current = (s) => ({ title: s.title.textContent.replace(/\s+/g, " ").trim(), html: normalize(s.body.innerHTML) });
+// 標題只去掉換行與頭尾的半形空白；全形空白（「第三條　…」）是標題的一部分，不能動
+const titleOf = (el) => el.textContent.replace(/[\r\n\t]+/g, "").replace(/\u00a0/g, " ").replace(/^ +| +$/g, "");
+const current = (s) => ({ title: titleOf(s.title), html: normalize(s.body.innerHTML) });
 const dirty = (s) => { const v = current(s); return v.title !== s.savedTitle || v.html !== s.savedHtml; };
 
 async function save(s) {
