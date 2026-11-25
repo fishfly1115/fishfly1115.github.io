@@ -24,3 +24,10 @@ test("本頁剩下太少時直接換頁再開始放長條文", () => {
 test("一頁內文高度約等於 A4 扣掉上下邊界", () => {
   assert.ok(PAGE_CONTENT > 1200 && PAGE_CONTENT < 1220);
 });
+
+test("標題區不放「定稿」印章圖樣，定稿只以文字標示", async () => {
+  const { headHtml } = await import("../../public/js/lib/paginate.js");
+  const html = headHtml({ title: "採購契約", caseNo: "555", final: true, round: 1 });
+  assert.doesNotMatch(html, /seal|定<br>稿/);
+  assert.match(html, /定稿本（第 1 輪）/);
+});

@@ -90,7 +90,6 @@ ins.d img { outline: 2px solid var(--ins-fg) }
 .compare h4 { margin: 0 0 4px; font-size: 12px; color: var(--muted); letter-spacing: .08em; font-weight: 500 }
 @media (max-width: 640px) { .compare { grid-template-columns: 1fr } }
 .empty { text-align: center; color: var(--muted); padding: 40px 16px }
-.seal { display: inline-grid; place-items: center; width: 46px; height: 46px; border: 2px solid var(--seal); color: var(--seal); border-radius: 6px; font-family: var(--f-clause); font-weight: 700; font-size: 14px; line-height: 1.1; transform: rotate(-6deg); flex: none }
 
 /* Import preview */
 .import-panel { display: grid; gap: 14px; padding-top: 20px }
