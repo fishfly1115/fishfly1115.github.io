@@ -1,5 +1,5 @@
 /* 基礎版面與共用元件：頁首、進度列、按鈕、輸入框、面板、選單、分頁、提示、載入骨架。 */
-:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
 body { margin: 0 }
 img { max-width: 100% }
 [hidden] { display: none !important }

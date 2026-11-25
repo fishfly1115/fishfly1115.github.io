@@ -15,6 +15,13 @@
 .pf .rich table { width: 100%; min-width: 0 }
 .pf .rich td, .pf .rich th { border-color: #666; min-width: 3em }
 .pf .rich tr:first-child > td, .pf .rich th { background: #f2f2f2 }
+/* 底線畫成下框線：Word 的填空線是「加底線的空白」，PDF 轉圖時不會畫空白上的底線，改用框線兩邊才一致 */
+.pf u, .pf [style*="text-decoration: underline"], .pf [style*="text-decoration:underline"] { text-decoration: none; border-bottom: 1px solid currentColor }
+/* 勾選框用內文字型、黑色顯示（不要彩色表情符號），畫面與 PDF 相同 */
+.pf { font-variant-emoji: text }
+.pf .fx { padding: 0; margin: 0; min-width: 0; vertical-align: baseline; line-height: inherit; letter-spacing: inherit }
+.pf .fx-box { font-family: inherit; font-size: inherit; color: inherit; padding: 0 }
+.pf .fx-date, .pf .fx-blank { box-shadow: none; text-decoration: inherit }
 
 /* PDF 匯出時在畫面外排版 */
 #pdf-stage { position: fixed; left: -12000px; top: 0 }
