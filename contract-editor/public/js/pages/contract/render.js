@@ -43,8 +43,18 @@ const loadingHtml = () => `<div class="card page-card">${S.slow
   ? `<p class="empty">無法載入契約，請確認網路連線<br><button class="btn" data-act="retry">重試</button></p>`
   : `<div class="skel-block"><span class="skel" style="width:30%"></span><span class="skel"></span><span class="skel"></span><span class="skel" style="width:70%"></span></div>`}</div>`;
 
-// 頂端列（含分頁）的高度，供側欄、工具列固定位置與捲動定位使用
+// 頂端列（含分頁）的高度，供側欄、工具列固定位置與捲動定位使用。
+// 字型載入、旋轉或縮放後高度會變，所以除了每次繪製，尺寸改變時也重新量測。
+let watching = false;
 function syncChrome() {
+  if (!watching && typeof ResizeObserver === "function") {
+    const els = [document.querySelector(".appbar"), document.querySelector("header.top")].filter(Boolean);
+    if (els.length) { watching = true; const ro = new ResizeObserver(() => setChrome()); els.forEach((el) => ro.observe(el)); }
+  }
+  setChrome();
+}
+
+function setChrome() {
   const h = document.querySelector(".appbar")?.offsetHeight;
   if (h) document.documentElement.style.setProperty("--chrome", h + "px");
   // 契約內容頁的工具列固定在頂端列下方；條文定位時要再讓出它的高度
