@@ -221,6 +221,9 @@ body[data-page] header.top h1 { font-family: var(--f-body); letter-spacing: 0 }
 .overview .news { margin-top: 0 }
 /* 審閱：一次一處 */
 .review-page { display: grid; gap: 14px; margin-block: 12px 48px }
+/* 審閱頁上方的「待審閱／審閱紀錄」切換，與下方內容保持固定間距 */
+.rv-switch { margin-bottom: 20px }
+.rv-switch + .review-page, .rv-switch + .log, .rv-switch + .hero { margin-top: 0 }
 .rv-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
 .rv-count { color: var(--turn-fg); font-size: 15px }
 .rv-dots { display: flex; gap: 6px }
