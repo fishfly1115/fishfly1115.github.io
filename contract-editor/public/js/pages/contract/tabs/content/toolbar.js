@@ -31,7 +31,11 @@ export function renderToolbar() {
   el.innerHTML = `${outlineBtn}${has && canEditDoc() ? ribbon() : ""}<div class="grow"></div>${zoom}<div class="pb-acts">${exportBtn}${primary}${moreMenu(has && !primary.includes("export-open"))}</div>`;
   // 表格選單：格式按鈕列可左右滑動（會裁切內容），選單改為固定定位顯示在按鈕下方
   const tm = el.querySelector(".ribbon .menu"), tb = el.querySelector('.ribbon [data-cmd="table-menu"]');
-  if (tm && tb) { const r = tb.getBoundingClientRect(); Object.assign(tm.style, { position: "fixed", left: r.left + "px", top: r.bottom + 4 + "px" }); }
+  if (tm && tb) {
+    const r = tb.getBoundingClientRect();
+    Object.assign(tm.style, { position: "fixed", top: r.bottom + 4 + "px" });
+    tm.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - tm.offsetWidth - 8)) + "px"; // 不超出視窗右緣
+  }
 }
 
 // 格式按鈕：點進條文後才能使用；旁邊顯示儲存狀態

@@ -16,7 +16,7 @@ public/js/
   word/    Word 匯入匯出      pdf/  PDF 匯出      api/  後端 API
   pages/   home/ 首頁（登入、列表、新增契約）；contract/ 契約頁（shell 外框、tabs/ 分頁一頁一個資料夾、dialogs/ 對話視窗）
 server/    router → routes/（admin、contract、clauses、images）＋ db、auth、model
-test/      unit/ 單元測試、e2e/ 完整流程與逐頁操作測試
+test/      unit/ 單元測試、e2e/ 完整流程、逐頁操作與版面不溢出測試
 ```
 
 ## 部署方式一（建議）：GitHub Actions 自動部署
