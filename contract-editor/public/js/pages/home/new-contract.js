@@ -5,7 +5,7 @@
  */
 import { contractApi } from "../../api/client.js";
 import { $, esc, toast } from "../../core/dom.js";
-import { store } from "../../core/storage.js";
+import { contractKey } from "../../core/storage.js";
 import { loadTemplates } from "../../lib/templates.js";
 import { tplPicker } from "../../ui/template-picker.js";
 import { H, admin } from "./state.js";
@@ -51,7 +51,7 @@ export const newContractScreen = {
       H.busy = true; draw();
       try {
         const r = await admin("contracts", "POST", { title, caseNo, ownerLabel });
-        store.set("ce:key:" + r.id, r.key);
+        contractKey.remember(r.id, r.key);
         if (tpl?.clauses.length) {
           try { await contractApi({ cid: r.id, key: r.key })("import", { title, source: `範本：${tpl.name}`, clauses: tpl.clauses }); }
           catch { toast("契約已建立，但範本套用失敗"); }

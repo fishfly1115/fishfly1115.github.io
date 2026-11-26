@@ -5,7 +5,7 @@
  */
 import { joinApi } from "../../api/client.js";
 import { $, esc } from "../../core/dom.js";
-import { store } from "../../core/storage.js";
+import { contractKey } from "../../core/storage.js";
 import { ROLES } from "../../lib/roles.js";
 
 const SIDE = { A: "甲方", B: "乙方" };
@@ -43,7 +43,7 @@ export async function startJoin(token) {
     btn.disabled = true; btn.textContent = "加入中…";
     try {
       const r = await joinApi(token, { pin, name, title: $("jtitle").value.trim() });
-      store.set("ce:key:" + r.cid, r.key);
+      contractKey.remember(r.cid, r.key);
       location.href = "/c/" + r.cid;
     } catch (ex) {
       err.textContent = ex.message; err.hidden = false;

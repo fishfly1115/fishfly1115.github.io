@@ -1,7 +1,7 @@
 // 契約頁進入點：網址 /c/<契約 id>#k=<專屬連結金鑰>。
-// 金鑰存入 localStorage 後即從網址移除，避免出現在瀏覽紀錄與螢幕分享中。
+// 金鑰記下後即從網址移除，避免出現在瀏覽紀錄與螢幕分享中（記在哪裡見 core/storage.js 的 contractKey）。
 import { contractApi } from "../../api/client.js";
-import { store } from "../../core/storage.js";
+import { contractKey, store } from "../../core/storage.js";
 import { S, api, ctx } from "./context.js";
 import { bindEvents } from "./events.js";
 import { bindRouter, viewFromPath } from "./router.js";
@@ -10,9 +10,9 @@ import { refresh, startPolling } from "./sync.js";
 
 export function startContract(cid) {
   const hashKey = new URLSearchParams(location.hash.slice(1)).get("k");
-  if (hashKey) { store.set("ce:key:" + cid, hashKey); history.replaceState(null, "", location.pathname); }
+  if (hashKey) { contractKey.remember(cid, hashKey); history.replaceState(null, "", location.pathname); }
   ctx.CID = cid;
-  ctx.KEY = store.get("ce:key:" + cid);
+  ctx.KEY = contractKey.get(cid);
   ctx.ADMIN = store.get("ce:admin");
   ctx.api = contractApi({ cid, key: ctx.KEY, admin: ctx.ADMIN });
   // 他方成員沒有管理密碼，首頁對他們沒有用途
