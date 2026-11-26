@@ -35,7 +35,7 @@ export function entryHtml(r) {
   return `<article class="entry">
     <div class="entry-head">${isNew(r) || decidedNew(r) ? `<span class="newdot" title="新的"></span>` : ""}<strong>${title}</strong>${pill}</div>
     <div class="meta">${esc(whoFull(r.by))} ${KIND[kind]}${r.via === "word" ? "（匯入 Word）" : ""} · ${fmt(r.at)} · 第 ${r.round || 1} 輪</div>
-    ${r.note ? `<div class="review"><span class="note">${r.status === "withdrawn" ? "撤回原因" : "退回理由"}：${esc(r.note)}</span></div>` : ""}
+    ${r.note ? `<div class="review"><span class="review-note">${r.status === "withdrawn" ? "撤回原因" : "退回理由"}：${esc(r.note)}</span></div>` : ""}
     ${body}
     <div class="actions">
       ${canExpand ? `<button class="linkbtn" data-act="expand" data-id="${r.id}">${open ? "收起全文對照" : "看修訂前／修訂後全文"}</button>` : ""}

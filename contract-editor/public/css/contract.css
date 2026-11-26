@@ -24,7 +24,7 @@
 .pill.plain { background: var(--paper); color: var(--muted) }
 .newdot { width: 8px; height: 8px; border-radius: 50%; background: var(--seal); display: inline-block }
 .review { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; background: var(--paper); border-radius: 8px }
-.review .note { flex: 1 1 220px; color: var(--muted); font-size: 13px }
+.review-note { flex: 1 1 220px; color: var(--muted); font-size: 13px }
 .confirm { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--del-fg); border-radius: 8px }
 .confirm input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: var(--sheet) }
 .addrow { display: flex; justify-content: center; padding-top: 16px }

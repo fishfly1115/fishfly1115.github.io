@@ -4,6 +4,7 @@
  * 主要任務：看懂這一處改了什麼 → 接受或退回 → 自動前往下一處
  * 最重要資料：目前這一處的「原文 → 新文」與條文全文標示
  * 一次只顯示一處；全部處理完後，顯示下一步（送回他方）。
+ * 上方切換「待審閱」與「審閱紀錄」（雙方已接受或退回的修訂，最新的在前）。
  */
 import { diffHtml } from "../../../../core/diff.js";
 import { esc } from "../../../../core/dom.js";
@@ -11,6 +12,7 @@ import { fmt } from "../../../../core/format.js";
 import { icon } from "../../../../ui/icons.js";
 import { S } from "../../context.js";
 import { SIDE, clauseHtmlOf, otherSide, pendingOf, revHtml, sameSide, status, theirsClauses, whoFull } from "../../state.js";
+import { entryHtml } from "../history/view.js";
 import { changesHtml, summaryOf } from "./summary.js";
 
 // 目前審閱的條文：S.focusPending 指定的那條，否則第一條
@@ -35,8 +37,28 @@ function doneHtml() {
   </section>`;
 }
 
+// 已審閱（接受或退回）的修訂，最新的在前
+export const reviewedRevs = () => S.revs.filter((r) => r.status === "accepted" || r.status === "reverted")
+  .sort((x, y) => (y.reviewedAt || 0) - (x.reviewedAt || 0));
+
+function switchHtml(todo, done) {
+  const v = S.reviewView;
+  return `<div class="filters rv-switch" role="group" aria-label="審閱">${[["todo", "待審閱", todo], ["log", "審閱紀錄", done]]
+    .map(([k, l, n]) => `<button class="chip" aria-pressed="${v === k}" data-act="review-view" data-v="${k}">${l}${n ? ` ${n}` : ""}</button>`).join("")}</div>`;
+}
+
+function logHtml(list) {
+  return `<div class="log">${list.length ? list.map(entryHtml).join("") : `<p class="empty">還沒有審閱紀錄</p>`}</div>`;
+}
+
 export function reviewHtml() {
-  const list = theirsClauses();
+  const list = theirsClauses(), done = reviewedRevs();
+  const top = switchHtml(list.length, done.length);
+  if (S.reviewView === "log") return top + logHtml(done);
+  return top + todoHtml(list);
+}
+
+function todoHtml(list) {
   if (!list.length) return doneHtml();
   const i = currentIndex(list), c = list[i];
   const { last, items, more, kind } = summaryOf(c);

@@ -75,7 +75,7 @@ contract-editor/
 │                   ├── content/         契約內容：clauses.js 契約紙張、outline.js 條文目錄、toolbar.js 工具列、
 │                   │                    paper.js 紙張排版與縮放、inline-editor.js 直接點條文修訂（自動儲存）、fields.js／field-popover.js 直接填寫、
 │                   │                    locate.js 定位條文
-│                   ├── review/          審閱：view.js 一次一處、summary.js 修訂摘要、actions.js 接受／退回／全部接受
+│                   ├── review/          審閱：view.js 一次一處與審閱紀錄、summary.js 修訂摘要、actions.js 接受／退回／全部接受
 │                   ├── members/         成員：view.js 邀請卡（連結＋密碼）、甲乙方成員、我的資料
 │                   ├── history/         修訂紀錄（契約內容的子頁）：view.js 紀錄與篩選
 │                   └── import/          匯入（契約內容的子頁）：view.js 三種方式、previews.js 預覽與比對、import.js 讀檔與寫入

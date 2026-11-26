@@ -1,4 +1,4 @@
-// 「審閱」頁：一次一處他方修訂，接受或退回後自動前往下一處。
+// 「審閱」頁：一次一處他方修訂，接受或退回後自動前往下一處；另可切換看審閱紀錄。
 import { S } from "../../context.js";
 import { render } from "../../render.js";
 import { theirsClauses } from "../../state.js";
@@ -15,6 +15,7 @@ export default {
   actions: {
     "review-accept": (el, id) => { if (!S.busy) decide(id, "accept"); },
     "review-revert": (el, id) => { if (!S.busy) decide(id, "revert"); },
+    "review-view": (el) => { S.reviewView = el.dataset.v; render(); },
     "accept-all": () => { S.acceptAll = true; render(); },
     "accept-all-cancel": () => { S.acceptAll = false; render(); },
     "accept-all-do": () => acceptAll()
