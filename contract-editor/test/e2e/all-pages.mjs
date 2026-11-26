@@ -172,6 +172,12 @@ async function main() {
     await v.waitForSelector(".rv-card");
     await v.click("[data-act=accept-all]");
     await v.click("[data-act=accept-all-do]");
+    // 審閱頁可切換看審閱紀錄：剛接受的修訂出現在紀錄中
+    await v.waitForSelector("text=沒有待您審閱的修訂");
+    await v.click("[data-act=review-view][data-v=log]");
+    await v.waitForSelector(".log .entry .pill.ok");
+    assert.match(await v.textContent("[data-act=review-view][data-v=log]"), /審閱紀錄 \d+/);
+    await v.click("[data-act=review-view][data-v=todo]");
     await v.click(".hero [data-act=handoff-reviewed]");
     await nav(v, "overview", ".hero");
     assert.match(await v.textContent(".hero h2"), /等待甲方確認/);

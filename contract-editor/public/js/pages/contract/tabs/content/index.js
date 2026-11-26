@@ -58,7 +58,7 @@ export default {
     "revert-do": (el, id) => simple(`clauses/${id}/revert`, { note: (el.closest(".confirm")?.querySelector("input")?.value || "").trim() }, "已撤回，條文恢復為修訂前內容"),
     "confirm-cancel": () => { S.confirm = null; S.noteOpen = null; render(); },
     "toggle-plain": (el, id) => { S.plainView.has(id) ? S.plainView.delete(id) : S.plainView.add(id); render(); },
-    "review-go": (el, id) => { S.focusPending = id; go("review"); },
+    "review-go": (el, id) => { S.focusPending = id; S.reviewView = "todo"; go("review"); },
     goto: (el, id, ev) => { ev.preventDefault(); locate(id, { flash: false }); },
     "outline-toggle": () => { S.outlineOpen = !S.outlineOpen; render(); },
     "more-toggle": () => { S.moreOpen = !S.moreOpen; render(); },

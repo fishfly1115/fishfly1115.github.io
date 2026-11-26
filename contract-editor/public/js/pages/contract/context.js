@@ -9,7 +9,7 @@ export const S = {
   // 載入與權限
   loaded: { c: false, r: false, h: false }, slow: false, noAccess: null, canWrite: true, isAdmin: false, busy: false,
   // 畫面
-  view: "overview", filter: "all", onlyChecked: false, plainView: new Set(), expanded: new Set(),
+  view: "overview", filter: "all", reviewView: "todo", onlyChecked: false, plainView: new Set(), expanded: new Set(),
   outlineOpen: false, moreOpen: false, focusPending: null, acceptAll: false, editing: null, tableMenu: false, noteOpen: null, zoom: "fit", confirm: null, renaming: false,
   nameOpen: false, forceMain: false, dialog: null, forceDialog: false,
   // 共編連結與進入密碼（shell/invite-share.js）
