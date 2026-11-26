@@ -5,9 +5,10 @@ import { normalize, squash, textOf } from "../core/sanitize.js";
 export const canon = (html) => textOf(html) + "|" + ((html || "").match(/<img/gi) || []).length;
 export const titleKey = (t) => (t || "").replace(/[\s　：:、，,.。]/g, "");
 
-// imported: [{title, html}]；current: 目前有效的條文（依順序）；htmlOf: 取得條文 HTML 的函式。
+// imported: [{title, html}]；current: 目前有效的條文（依順序）；htmlOf: 取得條文 HTML 的函式；
+// exportedOf: 該條文匯出時的 HTML（匯出會拿掉未勾選的選項），與它相同也視為未變更。
 // 回傳 items（same／edit／add／delete，依匯入順序；刪除的放最後）與各類數量。新增條文會算出插入位置 order。
-export function compareRevision(imported, current, htmlOf = (c) => c.html) {
+export function compareRevision(imported, current, htmlOf = (c) => c.html, exportedOf = htmlOf) {
   const used = new Set(), items = [];
   let prev = null, pendingAdds = [];
   const flushAdds = (nextClause) => {
@@ -21,7 +22,7 @@ export function compareRevision(imported, current, htmlOf = (c) => c.html) {
     if (!m) { const it = { type: "add", title: im.title, html: normalize(im.html) }; items.push(it); pendingAdds.push(it); continue; }
     used.add(m.id); flushAdds(m); prev = m;
     const html = normalize(im.html);
-    const same = canon(htmlOf(m)) === canon(html) && squash(m.title) === squash(im.title);
+    const same = (canon(htmlOf(m)) === canon(html) || canon(exportedOf(m)) === canon(html)) && squash(m.title) === squash(im.title);
     items.push({ type: same ? "same" : "edit", clause: m, title: im.title, html });
   }
   flushAdds(null);

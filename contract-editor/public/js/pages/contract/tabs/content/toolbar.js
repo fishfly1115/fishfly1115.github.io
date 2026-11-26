@@ -10,6 +10,8 @@ import { canEditDoc, visible } from "../../state.js";
 
 // 格式按鈕：[指令, 圖示, 名稱]；null 為分隔線；表格的增刪列欄收在「表格」選單
 const FORMAT = [
+  ["undo", "undo", "復原（Ctrl+Z）"], ["redo", "redo", "重做（Ctrl+Y）"],
+  null,
   ["bold", "bold", "粗體"], ["italic", "italic", "斜體"], ["underline", "underline", "底線"], ["strikeThrough", "strike", "刪除線"],
   null,
   ["insertOrderedList", "listNumbered", "編號清單"], ["insertUnorderedList", "listBulleted", "項目清單"],

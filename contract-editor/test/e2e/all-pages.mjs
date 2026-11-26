@@ -88,6 +88,11 @@ async function main() {
     assert.equal(await o.locator(".ribbon [data-cmd=bold]").isDisabled(), false, "編輯時格式按鈕可用");
     await o.keyboard.press("End");
     await o.keyboard.type("（測試修訂）");
+    // 工具列的復原／重做
+    await o.click(".ribbon [data-cmd=undo]");
+    assert.doesNotMatch(await o.locator(".ie-body").innerText(), /測試修訂/, "復原後打的字消失");
+    await o.click(".ribbon [data-cmd=redo]");
+    assert.match(await o.locator(".ie-body").innerText(), /（測試修訂）/, "重做後回來");
     await o.waitForFunction(() => document.getElementById("save-state")?.textContent === "已儲存");
     await o.keyboard.press("Escape");
     await o.waitForSelector("section.clause[data-state=mine]");
@@ -96,7 +101,7 @@ async function main() {
     await o.locator(".note[data-tone=mine] [data-act=revert-open]").click();
     await o.click("[data-act=revert-do]");
     await o.waitForSelector("section.clause[data-state=mine]", { state: "detached" });
-    step("直接點條文修訂（自動儲存）並撤回");
+    step("直接點條文修訂（復原／重做、自動儲存）並撤回");
     await more(o, "[data-act=add]");
     await o.waitForSelector(".ie-title");
     await o.keyboard.type("第九十九條　測試新增");
@@ -206,6 +211,15 @@ async function main() {
     await o.goBack();
     await o.waitForSelector(".clause");
     step("修訂紀錄由「更多」進入、可返回契約內容；瀏覽器上一頁回到前一個分頁");
+
+    // 首頁：已定稿的契約有「下載定稿本」圖示，點了進入契約並直接開啟匯出視窗
+    await o.goto(B + "/");
+    await o.waitForSelector(".ctable");
+    assert.equal(await o.locator("a[aria-label=下載定稿本]").count(), 1, "只有已定稿的契約有下載圖示");
+    await o.click("a[aria-label=下載定稿本]");
+    await o.waitForSelector(".dialog input[name=efmt]");
+    assert.doesNotMatch(o.url(), /#/, "網址不留 #export");
+    step("首頁已定稿契約的下載圖示直接開啟匯出視窗");
 
     console.log("\n全部通過");
   } finally {

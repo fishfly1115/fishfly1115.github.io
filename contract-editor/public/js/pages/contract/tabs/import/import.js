@@ -1,6 +1,7 @@
 // 匯入：新契約 Word、範本、修訂版 Word。
 import { $, toast } from "../../../../core/dom.js";
 import { compareRevision } from "../../../../lib/compare.js";
+import { Fields } from "../../../../lib/fields.js";
 import { splitByHeadings, splitRich } from "../../../../lib/split.js";
 import { uploadImage } from "../../sync.js";
 import { S } from "../../context.js";
@@ -46,7 +47,7 @@ export async function pickRevised(file) {
     const { html, imgFail } = await readDocx(file, uploadImage);
     const imported = splitByHeadings(html);
     if (!imported.length) toast("檔案中沒有可比對的條文");
-    else { S.reimport = { ...compareRevision(imported, live(), clauseHtmlOf), source: file.name, imgFail }; S.reimportAll = false; }
+    else { S.reimport = { ...compareRevision(imported, live(), clauseHtmlOf, (c) => Fields.hideUncheckedHtml(clauseHtmlOf(c))), source: file.name, imgFail }; S.reimportAll = false; }
   } catch (e) { console.error(e); toast("無法讀取此 Word 檔，請確認為未加密的 .docx 檔"); }
   S.importing = false; showPreview();
 }

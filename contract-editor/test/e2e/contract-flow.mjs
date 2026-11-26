@@ -150,10 +150,12 @@ async function main() {
     await owner2.waitForFunction((n) => document.querySelector(".rv-count")?.textContent.includes(`／${n} 處`), changed - 1);
     await nav(owner2, "content", "section.clause[data-state=theirs]");
     assert.equal(await owner2.locator(".note[data-tone=theirs] [data-act=review-go]").count(), changed - 1);
-    // 紙張檢視：畫面上的頁數與匯出的 PDF 相同
+    // 紙張檢視：畫面上的頁數與匯出的 PDF 相同（匯出只保留已勾選的選項，畫面切到「只顯示已勾選」比對）
+    await more(owner2, "[data-act=only-checked]");
+    await owner2.waitForTimeout(500);
     const screenPages = await owner2.locator(".pages .page").count();
     await openExport(owner2, "pdf");
-    await owner2.uncheck(".dialog #eonly"); // 與畫面相同：保留全部選項
+    assert.equal(await owner2.locator(".dialog #eonly").count(), 0, "匯出一律不含未勾選的選項，不需要再勾選");
     const pdfFile = join(work, "export.pdf");
     assert.ok(await download(owner2, pdfFile) > 10000);
     assert.equal(readFileSync(pdfFile).subarray(0, 4).toString(), "%PDF");

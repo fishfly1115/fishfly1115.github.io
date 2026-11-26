@@ -130,9 +130,9 @@ async function prepare(arrayBuffer) {
   return zip.generateAsync({ type: "arraybuffer" });
 }
 
-// After mammoth: turn the indent markers into data-i attributes.
+// After mammoth: turn the indent markers into data-i attributes; 「■」（匯出時的已勾選框，見 docx-export.js）轉回 ☑.
 function post(html) {
-  return html
+  return html.replace(/■/g, "☑")
     .replace(new RegExp(`<(p|h[1-6]|li)((?:\\s[^>]*)?)>((?:<(?:strong|em|u|s|b|i)>)*)${MARK}([\\uE100-\\uE1FF])`, "g"), (_, tag, attrs, open, ch) => `<${tag}${attrs} data-i="${ch.charCodeAt(0) - 0xE100}">${open}`)
     .replace(new RegExp(`${MARK}[\\uE100-\\uE1FF]?`, "g"), "");
 }

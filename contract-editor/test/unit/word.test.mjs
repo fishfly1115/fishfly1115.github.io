@@ -34,3 +34,17 @@ test("在 Word 中修改文字：只有該條判定為修訂", async () => {
   assert.deepEqual(r.counts, { edit: 1, add: 0, delete: 0, same: 1 });
   assert.equal(r.items.find((i) => i.type === "edit").clause.id, "b");
 });
+
+test("匯出只保留已勾選的選項：勾選框在 Word 寫成 ■，匯回後視為未變更", async () => {
+  const { Fields } = await import("../../public/js/lib/fields.js");
+  const cls = [{ id: "c", order: 0, title: "第三條　交付", html: "<p>甲方提供□技術；☑材料；□設備。</p>" }];
+  const exported = cls.map((c) => ({ title: c.title, html: Fields.hideUncheckedHtml(c.html) }));
+  let xml = "";
+  const back = await roundTrip(exported, (x) => (xml = x));
+  assert.doesNotMatch(xml, /[□☐]/, "匯出的 Word 沒有未勾選的選項");
+  assert.match(xml, /■材料/);
+  assert.doesNotMatch(xml, /☑/);
+  assert.match(back[0].html, /☑材料/);
+  const r = compareRevision(back, cls, (c) => c.html, (c) => Fields.hideUncheckedHtml(c.html));
+  assert.equal(r.counts.same, 1);
+});

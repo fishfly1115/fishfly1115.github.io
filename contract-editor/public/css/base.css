@@ -145,7 +145,8 @@ select.inp { appearance: auto }
 .ctable .t::after { content: ""; position: absolute; inset: 0 }
 .ctable .t:focus-visible { outline: none }
 .ctable .t:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px }
-.ctable .c-act { position: relative; z-index: 1; width: 56px; text-align: right }
+.ctable .c-act { position: relative; z-index: 1; width: 96px; text-align: right; white-space: nowrap }
+.ctable .c-act > * { display: inline-flex; vertical-align: middle }
 .ctable .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
 .ctable .c-other { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .ctable tr.editing td { background: var(--accent-soft) }
@@ -158,7 +159,7 @@ select.inp { appearance: auto }
   .ctable tbody tr { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; padding: 14px 16px; border-bottom: 1px solid var(--line) }
   .ctable td { padding: 0; border: 0; text-align: left !important }
   .ctable td.c-title { grid-column: 1 }
-  .ctable td.c-act { grid-column: 2; grid-row: 1 }
+  .ctable td.c-act { grid-column: 2; grid-row: 1; width: auto; margin-right: -8px }
   .ctable td[data-label] { grid-column: 1 / -1; display: flex; gap: 8px; font-size: 13px }
   .ctable td[data-label]::before { content: attr(data-label); color: var(--muted); font-size: 12px; min-width: 4.5em }
   .ctable tr.editing { display: block }

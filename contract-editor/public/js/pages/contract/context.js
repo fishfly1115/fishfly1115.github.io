@@ -16,7 +16,7 @@ export const S = {
   invites: null, confirmRotate: null, shareSide: null,
   // 匯入與匯出
   importing: false, importPreview: null, reimport: null, reimportAll: false, tplPick: false, tpls: null,
-  exporting: false, exportFmt: "pdf", exportOnlyChecked: true
+  exporting: false, exportFmt: "pdf"
 };
 
 export const api = (path, body) => ctx.api(path, body);

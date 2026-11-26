@@ -19,11 +19,14 @@ async function loadImages(root) {
   return map;
 }
 
+// 已勾選框在 Word 用「■」：☑ 在部分字型（如 Mac 的 Word）會顯示成彩色表情符號；匯入時再轉回 ☑（docx-import.js）
+const wordText = (s) => s.replace(/[☑☒]\uFE0E?/g, "■");
+
 function build(D, images) {
   const runs = (node, st = {}) => {
     const out = [];
     for (const c of node.childNodes) {
-      if (c.nodeType === 3) { if (c.data) out.push(new D.TextRun({ text: c.data, bold: st.b, italics: st.i, underline: st.u ? {} : undefined, strike: st.s })); continue; }
+      if (c.nodeType === 3) { if (c.data) out.push(new D.TextRun({ text: wordText(c.data), bold: st.b, italics: st.i, underline: st.u ? {} : undefined, strike: st.s })); continue; }
       if (c.nodeType !== 1) continue;
       const t = c.tagName;
       if (t === "BR") { out.push(new D.TextRun({ text: "", break: 1 })); continue; }

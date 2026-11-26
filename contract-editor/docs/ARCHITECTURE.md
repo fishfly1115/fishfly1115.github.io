@@ -73,7 +73,7 @@ contract-editor/
 │                   ├── index.js         分頁登錄與分頁定義的格式（Tab）
 │                   ├── overview/        總覽：view.js 步驟與下一步、news.js 自上次查看後的更新
 │                   ├── content/         契約內容：clauses.js 契約紙張、outline.js 條文目錄、toolbar.js 工具列、
-│                   │                    paper.js 紙張排版與縮放、inline-editor.js 直接點條文修訂（自動儲存）、fields.js／field-popover.js 直接填寫、
+│                   │                    paper.js 紙張排版與縮放、inline-editor.js 直接點條文修訂（自動儲存）、edit-history.js 復原／重做、fields.js／field-popover.js 直接填寫、
 │                   │                    locate.js 定位條文
 │                   ├── review/          審閱：view.js 一次一處與審閱紀錄、summary.js 修訂摘要、actions.js 接受／退回／全部接受
 │                   ├── members/         成員：view.js 邀請卡（連結＋密碼）、甲乙方成員、我的資料
