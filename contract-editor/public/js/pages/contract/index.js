@@ -3,14 +3,17 @@
 import { contractApi } from "../../api/client.js";
 import { contractKey, store } from "../../core/storage.js";
 import { S, api, ctx } from "./context.js";
+import { openDialog } from "./dialogs/index.js";
 import { bindEvents } from "./events.js";
 import { bindRouter, viewFromPath } from "./router.js";
 import { render } from "./render.js";
 import { refresh, startPolling } from "./sync.js";
 
 export function startContract(cid) {
-  const hashKey = new URLSearchParams(location.hash.slice(1)).get("k");
-  if (hashKey) { contractKey.remember(cid, hashKey); history.replaceState(null, "", location.pathname); }
+  // 網址 #k=<金鑰>：專屬連結；#export：從首頁「下載定稿本」進來，載入後直接開啟匯出視窗
+  const hash = new URLSearchParams(location.hash.slice(1)), hashKey = hash.get("k"), wantExport = hash.has("export");
+  if (hashKey) contractKey.remember(cid, hashKey);
+  if (location.hash) history.replaceState(null, "", location.pathname);
   ctx.CID = cid;
   ctx.KEY = contractKey.get(cid);
   ctx.ADMIN = store.get("ce:admin");
@@ -32,6 +35,7 @@ export function startContract(cid) {
   refresh().then(() => {
     if (S.noAccess) return;
     startPolling();
+    if (wantExport) openDialog("export");
     api("seen", {}).catch(() => {});
   });
 }

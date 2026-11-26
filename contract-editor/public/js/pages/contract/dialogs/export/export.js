@@ -1,4 +1,4 @@
-// 匯出 PDF 定稿本／Word。可選擇只保留已勾選的選項。
+// 匯出 PDF 定稿本／Word。匯出的文件只保留已勾選的選項（未勾選的不出現）。
 import { $, saveBlob, toast } from "../../../../core/dom.js";
 import { pad2, rocToday } from "../../../../core/format.js";
 import { need } from "../../../../core/loader.js";
@@ -9,7 +9,7 @@ import { caseNo, clauseHtmlOf, docTitle, live, roundNo, status } from "../../sta
 import { buildPdf } from "../../../../pdf/pdf-export.js";
 import { toBlob } from "../../../../word/docx-export.js";
 
-export const exportClauses = (onlyChecked) => live().map((c) => ({ title: c.title, html: onlyChecked ? Fields.hideUncheckedHtml(clauseHtmlOf(c)) : clauseHtmlOf(c) }));
+export const exportClauses = () => live().map((c) => ({ title: c.title, html: Fields.hideUncheckedHtml(clauseHtmlOf(c)) }));
 
 // 例：113年度資訊系統維護採購案契約書_草案第2輪_20261109.pdf
 function fileName(ext) {
@@ -24,20 +24,20 @@ async function run(task) {
   try { await task(); } finally { S.exporting = false; render(); }
 }
 
-export const exportWord = (onlyChecked) => run(async () => {
+export const exportWord = () => run(async () => {
   try {
     await need("docx");
     const fin = status() === "final";
-    const blob = await toBlob({ title: docTitle(), caseNo: caseNo(), status: fin ? `定稿本（第 ${roundNo()} 輪）` : `契約草案（第 ${roundNo()} 輪）`, date: `列印日期：${rocToday()}` }, exportClauses(onlyChecked));
+    const blob = await toBlob({ title: docTitle(), caseNo: caseNo(), status: fin ? `定稿本（第 ${roundNo()} 輪）` : `契約草案（第 ${roundNo()} 輪）`, date: `列印日期：${rocToday()}` }, exportClauses());
     saveBlob(fileName("docx"), blob);
     toast("已匯出 Word");
   } catch (e) { console.error(e); toast("無法產生 Word 檔，請重新整理頁面後重試"); }
 });
 
-export const exportPdf = (onlyChecked) => run(async () => {
+export const exportPdf = () => run(async () => {
   try {
     const meta = { title: docTitle(), caseNo: caseNo(), final: status() === "final", round: roundNo() };
-    const { blob, textLayer } = await buildPdf(meta, exportClauses(onlyChecked), $("pdf-stage"));
+    const { blob, textLayer } = await buildPdf(meta, exportClauses(), $("pdf-stage"));
     saveBlob(fileName("pdf"), blob);
     toast(textLayer ? "PDF 已下載" : "PDF 已下載（未能加入可搜尋的文字層）");
   } catch (e) { console.error(e); toast("PDF 產生失敗，請重新整理頁面後重試"); }

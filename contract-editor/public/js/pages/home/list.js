@@ -54,7 +54,7 @@ function rowHtml(c) {
     <td data-label="輪到" class="c-turn">${turnHtml(c)}</td>
     <td data-label="他方" class="c-other">${others.length ? esc(others.join("、")) : `<span class="meta-s">尚未邀請</span>`}</td>
     <td data-label="更新時間" class="num"><span class="meta-s">${fmt(c.updatedAt)}</span></td>
-    <td class="c-act"><div class="menu-wrap"><button class="btn icon ghost" data-act="row-menu" data-id="${c.id}" aria-label="更多動作" aria-haspopup="menu" aria-expanded="${H.rowMenu === c.id}">${icon("more")}</button>
+    <td class="c-act">${c.handoff?.status === "final" ? `<a class="btn icon ghost" href="/c/${c.id}#export" aria-label="下載定稿本" title="下載定稿本">${icon("download")}</a>` : ""}<div class="menu-wrap"><button class="btn icon ghost" data-act="row-menu" data-id="${c.id}" aria-label="更多動作" aria-haspopup="menu" aria-expanded="${H.rowMenu === c.id}">${icon("more")}</button>
       ${H.rowMenu === c.id ? `<div class="menu" role="menu"><button role="menuitem" data-act="rename" data-id="${c.id}"><strong>編輯名稱與案號</strong></button><button role="menuitem" class="danger" data-act="del" data-id="${c.id}"><strong>刪除契約</strong></button></div>` : ""}</div></td>
   </tr>`;
 }

@@ -7,13 +7,14 @@ import { S, api } from "../../context.js";
 import { render } from "../../render.js";
 import { clauseHtmlOf, who } from "../../state.js";
 import { act, fail, refresh, uploadImage } from "../../sync.js";
+import { createHistory, placeCaret } from "./edit-history.js";
 
 const SAVE_DELAY = 1000;
 
 /**
  * 編輯中的條文（同一時間只有一條）
  * @type {null | { id: string, rev: number, el: HTMLElement, title: HTMLElement, body: HTMLElement, savedTitle: string, savedHtml: string,
- *   timer: number, queue: Promise<void>, saved: boolean, conflict: boolean, range: Range|null }}
+ *   timer: number, queue: Promise<void>, saved: boolean, conflict: boolean, range: Range|null, hist: ReturnType<typeof createHistory> }}
  */
 let session = null;
 
@@ -70,15 +71,24 @@ export function editorFor(c) {
     <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>`;
   const title = el.querySelector(".ie-title"), body = el.querySelector(".ie-body");
   // 以剛放進編輯區的內容為基準：只點進來、沒有輸入就不會存出一筆修訂
-  session = { id: c.id, rev: c.rev, el, title, body, savedTitle: titleOf(title), savedHtml: normalize(body.innerHTML), timer: 0, queue: Promise.resolve(), saved: false, conflict: false, range: null };
+  session = { id: c.id, rev: c.rev, el, title, body, savedTitle: titleOf(title), savedHtml: normalize(body.innerHTML), timer: 0, queue: Promise.resolve(), saved: false, conflict: false, range: null, hist: createHistory(title, body) };
   bind(session, el.querySelector("input[type=file]"));
   return el;
 }
 
 function bind(s, fileIn) {
   const later = () => { clearTimeout(s.timer); s.timer = setTimeout(() => { s.timer = 0; s.queue = s.queue.then(() => save(s)); }, SAVE_DELAY); setState("編輯中"); };
-  s.title.addEventListener("input", later);
-  s.body.addEventListener("input", later);
+  const typed = () => { later(); s.hist.typed(); };
+  s.title.addEventListener("input", typed);
+  s.body.addEventListener("input", typed);
+  // Ctrl+Z 復原、Ctrl+Y 或 Ctrl+Shift+Z 重做（Mac 為 ⌘），與工具列按鈕相同
+  const undoKeys = (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === "z" || k === "y") { e.preventDefault(); runCommand(k === "y" || e.shiftKey ? "redo" : "undo"); }
+  };
+  s.title.addEventListener("keydown", undoKeys);
+  s.body.addEventListener("keydown", undoKeys);
   // 標題只放文字：Enter 跳到內文、貼上只取文字
   s.title.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); s.body.focus(); placeCaret(s.body, 0); } });
   s.title.addEventListener("paste", (e) => { e.preventDefault(); document.execCommand("insertText", false, (e.clipboardData?.getData("text/plain") || "").replace(/\s+/g, " ")); });
@@ -139,6 +149,9 @@ export function runCommand(cmd) {
   const s = session; if (!s) return;
   if (cmd === "table-menu") { S.tableMenu = !S.tableMenu; render(); return; }
   if (S.tableMenu) { S.tableMenu = false; render(); }
+  // 復原／重做：回到上一步或下一步的內容，之後照常自動儲存
+  if (cmd === "undo" || cmd === "redo") { if (s.hist[cmd]()) s.body.dispatchEvent(new Event("input")); return; }
+  s.hist.commit(); // 先把之前的輸入記成一步，這次操作另算一步
   s.body.focus();
   if (s.range && !s.body.contains(getSelection().anchorNode)) { const sel = getSelection(); sel.removeAllRanges(); sel.addRange(s.range); }
   if (cmd === "table") document.execCommand("insertHTML", false, "<table><tbody><tr><td>　</td><td>　</td><td>　</td></tr><tr><td>　</td><td>　</td><td>　</td></tr></tbody></table><p><br></p>");
@@ -146,6 +159,7 @@ export function runCommand(cmd) {
   else if (cmd === "image") s.el.querySelector("input[type=file]").click();
   else document.execCommand(cmd, false, null);
   s.body.dispatchEvent(new Event("input"));
+  s.hist.commit();
 }
 
 function tableOp(ed, op) {
@@ -197,16 +211,5 @@ function textOffsetAt(id, { x, y }) {
   return r.toString().length;
 }
 
-function placeCaret(root, offset) {
-  const sel = getSelection(), r = document.createRange();
-  if (offset == null) { r.selectNodeContents(root); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); return; }
-  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let left = offset, n;
-  while ((n = walk.nextNode())) {
-    if (left <= n.length) { r.setStart(n, left); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); return; }
-    left -= n.length;
-  }
-  placeCaret(root, null);
-}
 
 function selectAll(el) { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
