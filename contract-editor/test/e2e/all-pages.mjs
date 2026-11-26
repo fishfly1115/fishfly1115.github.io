@@ -161,8 +161,13 @@ async function main() {
     await nav(o, "overview", ".hero");
     assert.match(await o.textContent(".hero h2"), /等待乙方審閱/);
     assert.match(await o.textContent(".fs-step[aria-current=step]"), /乙方審閱/);
-    const v = await newPage(browser, { width: 1440 });
+    // 乙方在同一個瀏覽器的另一個分頁加入：身分跟著分頁，甲方分頁重新整理後仍是甲方
+    const v = await o.context().newPage();
+    v.on("pageerror", (e) => { throw new Error("頁面錯誤：" + e.message); });
     await joinWith(v, share, "林經理", "主管");
+    await v.reload();
+    await v.waitForSelector(".hero");
+    assert.match(await v.textContent(".hero h2"), /審閱甲方的修訂|審閱/, "乙方分頁重新整理後仍是乙方");
     await v.click(".hero [data-v=review]");
     await v.waitForSelector(".rv-card");
     await v.click("[data-act=accept-all]");
@@ -172,14 +177,20 @@ async function main() {
     assert.match(await v.textContent(".hero h2"), /等待甲方確認/);
     await o.reload();
     await nav(o, "overview", ".hero");
-    assert.match(await o.textContent(".hero h2"), /確認審閱結果/);
+    assert.match(await o.textContent(".hero h2"), /確認審閱結果/, "甲方分頁重新整理後仍是甲方視角");
+    // 同一個瀏覽器新開的分頁使用預設身分（最先記住的甲方），不會被後加入的乙方取代
+    const fresh = await o.context().newPage();
+    await fresh.goto(o.url().replace(/\/c\/([^/]+).*/, "/c/$1"));
+    await fresh.waitForSelector(".hero");
+    assert.match(await fresh.textContent(".hero h2"), /確認審閱結果/, "新分頁預設為甲方");
+    await fresh.close();
     await o.click("[data-act=final]");
     await o.waitForSelector("text=雙方已確認定稿");
     await o.click(".hero [data-act=export-open]");
     await o.waitForSelector(".dialog input[name=efmt]");
     await o.keyboard.press("Escape");
     await o.waitForSelector("#dialog", { state: "hidden" });
-    step("總覽改名，交給乙方（視窗顯示連結與密碼）→ 乙方加入、全部接受 → 送回 → 定稿 → 匯出視窗");
+    step("總覽改名，交給乙方（視窗顯示連結與密碼）→ 乙方在同一瀏覽器另一分頁加入、全部接受 → 送回（甲方分頁仍是甲方）→ 定稿 → 匯出視窗");
     await nav(o, "history", ".filters");
     assert.equal(await o.getAttribute(".pagenav [data-v=content]", "aria-current"), "page", "子頁標示所屬的「契約內容」");
     await o.click(".back");
