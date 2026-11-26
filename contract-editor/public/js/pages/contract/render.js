@@ -55,7 +55,9 @@ function syncChrome() {
 }
 
 function setChrome() {
-  const h = document.querySelector(".appbar")?.offsetHeight;
+  // 頂端列固定時離視窗頂端還有安全區域（iPad、iPhone 的瀏海與狀態列），要一起算進去
+  const bar0 = document.querySelector(".appbar");
+  const h = bar0 && bar0.offsetHeight + (parseFloat(getComputedStyle(bar0).top) || 0);
   if (h) document.documentElement.style.setProperty("--chrome", h + "px");
   // 契約內容頁的工具列固定在頂端列下方；條文定位時要再讓出它的高度
   const bar = document.body.dataset.page === "content" ? document.querySelector("header.top")?.offsetHeight || 0 : 0;

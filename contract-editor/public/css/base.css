@@ -94,6 +94,14 @@ a.btn { text-decoration: none }
 
 .pop { position: absolute; z-index: 30; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 12px; display: grid; gap: 8px; width: min(320px, calc(100vw - 16px)) }
 .pop label { font-size: 13px; color: var(--muted) }
+.pop { grid-template-columns: minmax(0, 1fr) }
+.pop .row { flex-wrap: nowrap }
+.pop .row .grow { flex: 1 1 0 }
+/* iOS 的日期欄位有固定的最小寬度，會撐出小視窗；改成跟一般輸入框一樣寬 */
+.inp[type=date] { -webkit-appearance: none; appearance: none; display: block; min-height: 38px; text-align: left }
+.inp[type=date]::-webkit-date-and-time-value { text-align: left }
+/* 觸控裝置的輸入框字級至少 16px，避免 iOS 點進輸入框時自動放大整頁 */
+@media (pointer: coarse) { input, textarea, select, .inp { font-size: max(16px, 1em) } }
 .inp { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: var(--paper); font: inherit; color: inherit }
 .inp:focus { outline: 2px solid var(--accent); outline-offset: -1px }
 .grow { flex: 1 1 auto }

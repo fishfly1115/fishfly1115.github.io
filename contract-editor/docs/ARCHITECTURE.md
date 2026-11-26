@@ -100,7 +100,8 @@ contract-editor/
 │   └── e2e/
 │       ├── helpers.mjs          啟動本機伺服器、開啟分頁、切換契約分頁、「更多」選單、匯出視窗
 │       ├── contract-flow.mjs    主要流程：建立 → 填寫 → 邀請 → 審閱 → Word 往返 → PDF
-│       └── all-pages.mjs        逐一操作每個畫面的按鈕
+│       ├── all-pages.mjs        逐一操作每個畫面的按鈕
+│       └── layout.mjs           手機、平板、桌機寬度下版面不溢出
 └── docs/ARCHITECTURE.md         本文件
 ```
 
